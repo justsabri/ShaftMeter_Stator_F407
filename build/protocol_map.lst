@@ -1,0 +1,667 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"protocol_map.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/protocol_map.c"
+  20              		.section	.text.ProtocolMap_Find,"ax",%progbits
+  21              		.align	1
+  22              		.global	ProtocolMap_Find
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	ProtocolMap_Find:
+  28              	.LVL0:
+  29              	.LFB239:
+   1:Core/Src/protocol_map.c **** #include "protocol_map.h"
+   2:Core/Src/protocol_map.c **** #include "protocol_values.h"
+   3:Core/Src/protocol_map.c **** #include <stddef.h>
+   4:Core/Src/protocol_map.c **** 
+   5:Core/Src/protocol_map.c **** #define OFF(x) ((uint16_t)offsetof(protocol_values_t, x))
+   6:Core/Src/protocol_map.c **** 
+   7:Core/Src/protocol_map.c **** const reg_meta_t g_reg_meta_table[] = {
+   8:Core/Src/protocol_map.c ****   {0x07D0U, "torque_kNm", REG_TYPE_FLOAT, 4U, 1U, OFF(torque_kNm)},
+   9:Core/Src/protocol_map.c ****   {0x07D2U, "power_kW", REG_TYPE_FLOAT, 4U, 1U, OFF(power_kW)},
+  10:Core/Src/protocol_map.c ****   {0x07D4U, "speed_rpm", REG_TYPE_FLOAT, 4U, 2U, OFF(speed_rpm)},
+  11:Core/Src/protocol_map.c ****   {0x07D6U, "thrust_kN", REG_TYPE_FLOAT, 4U, 2U, OFF(thrust_kN)},
+  12:Core/Src/protocol_map.c ****   {0x07D8U, "pc2_low_voltage_state", REG_TYPE_SHORT, 2U, 0U, OFF(pc2_low_voltage_state)},
+  13:Core/Src/protocol_map.c ****   {0x07D9U, "board_low_voltage_state", REG_TYPE_SHORT, 2U, 0U, OFF(board_low_voltage_state)},
+  14:Core/Src/protocol_map.c ****   {0x07DAU, "avg_power_kW", REG_TYPE_FLOAT, 4U, 1U, OFF(avg_power_kW)},
+  15:Core/Src/protocol_map.c ****   {0x07DCU, "wireless_frame_no", REG_TYPE_SHORT, 2U, 0U, OFF(wireless_frame_no)},
+  16:Core/Src/protocol_map.c ****   {0x09C4U, "query_time_h", REG_TYPE_FLOAT, 4U, 1U, OFF(query_time_h)},
+  17:Core/Src/protocol_map.c **** 
+  18:Core/Src/protocol_map.c ****   {0x09C6U, "shaft_outer_d_mm", REG_TYPE_FLOAT, 4U, 2U, OFF(shaft_outer_d_mm)},
+  19:Core/Src/protocol_map.c ****   {0x09C8U, "shaft_inner_d_mm", REG_TYPE_FLOAT, 4U, 2U, OFF(shaft_inner_d_mm)},
+  20:Core/Src/protocol_map.c ****   {0x09CAU, "shear_modulus_GPa", REG_TYPE_FLOAT, 4U, 2U, OFF(shear_modulus_GPa)},
+  21:Core/Src/protocol_map.c ****   {0x09CCU, "elastic_modulus_GPa", REG_TYPE_FLOAT, 4U, 2U, OFF(elastic_modulus_GPa)},
+  22:Core/Src/protocol_map.c ****   {0x09CEU, "poisson_ratio", REG_TYPE_FLOAT, 4U, 4U, OFF(poisson_ratio)},
+  23:Core/Src/protocol_map.c ****   {0x09D0U, "prop_dir", REG_TYPE_SHORT, 2U, 0U, OFF(prop_dir)},
+  24:Core/Src/protocol_map.c ****   {0x09D1U, "modulus_select", REG_TYPE_SHORT, 2U, 0U, OFF(modulus_select)},
+  25:Core/Src/protocol_map.c **** 
+  26:Core/Src/protocol_map.c ****   {0x09D2U, "sample_freq_Hz", REG_TYPE_FLOAT, 4U, 2U, OFF(sample_freq_Hz)},
+  27:Core/Src/protocol_map.c ****   {0x09D4U, "avg_time_ms", REG_TYPE_INT32, 4U, 0U, OFF(avg_time_ms)},
+  28:Core/Src/protocol_map.c ****   {0x09D6U, "avg_mode", REG_TYPE_SHORT, 2U, 0U, OFF(avg_mode)},
+  29:Core/Src/protocol_map.c ****   {0x09D7U, "calib_factor_ch1", REG_TYPE_FLOAT, 4U, 4U, OFF(calib_factor[0])},
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 2
+
+
+  30:Core/Src/protocol_map.c ****   {0x09D9U, "calib_factor_ch2", REG_TYPE_FLOAT, 4U, 4U, OFF(calib_factor[1])},
+  31:Core/Src/protocol_map.c ****   {0x09DBU, "gauge_sensitivity_ch1", REG_TYPE_FLOAT, 4U, 3U, OFF(gauge_sensitivity[0])},
+  32:Core/Src/protocol_map.c ****   {0x09DDU, "gauge_sensitivity_ch2", REG_TYPE_FLOAT, 4U, 3U, OFF(gauge_sensitivity[1])},
+  33:Core/Src/protocol_map.c ****   {0x09DFU, "zero_voltage_ch1", REG_TYPE_FLOAT, 4U, 3U, OFF(zero_voltage[0])},
+  34:Core/Src/protocol_map.c ****   {0x09E1U, "zero_voltage_ch2", REG_TYPE_FLOAT, 4U, 3U, OFF(zero_voltage[1])},
+  35:Core/Src/protocol_map.c ****   {0x09E3U, "zero_start", REG_TYPE_SHORT, 2U, 0U, OFF(zero_start)},
+  36:Core/Src/protocol_map.c ****   {0x09E4U, "zero_end", REG_TYPE_SHORT, 2U, 0U, OFF(zero_end)},
+  37:Core/Src/protocol_map.c **** 
+  38:Core/Src/protocol_map.c ****   {0x0AF0U, "flag_avg_power", REG_TYPE_SHORT, 2U, 0U, OFF(flag_avg_power)},
+  39:Core/Src/protocol_map.c ****   {0x0AF1U, "flag_axis_param", REG_TYPE_SHORT, 2U, 0U, OFF(flag_axis_param)},
+  40:Core/Src/protocol_map.c ****   {0x0AF2U, "flag_meas_param", REG_TYPE_SHORT, 2U, 0U, OFF(flag_meas_param)},
+  41:Core/Src/protocol_map.c ****   {0x0AF3U, "flag_uart_enable", REG_TYPE_SHORT, 2U, 0U, OFF(flag_uart_enable)},
+  42:Core/Src/protocol_map.c **** };
+  43:Core/Src/protocol_map.c **** 
+  44:Core/Src/protocol_map.c **** const uint32_t g_reg_meta_count = sizeof(g_reg_meta_table) / sizeof(g_reg_meta_table[0]);
+  45:Core/Src/protocol_map.c **** 
+  46:Core/Src/protocol_map.c **** const reg_meta_t *ProtocolMap_Find(uint16_t addr)
+  47:Core/Src/protocol_map.c **** {
+  30              		.loc 1 47 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  48:Core/Src/protocol_map.c ****   uint32_t i;
+  35              		.loc 1 48 3 view .LVU1
+  49:Core/Src/protocol_map.c ****   for (i = 0U; i < g_reg_meta_count; i++)
+  36              		.loc 1 49 3 view .LVU2
+  37              		.loc 1 49 10 is_stmt 0 view .LVU3
+  38 0000 0023     		movs	r3, #0
+  39              	.LVL1:
+  40              	.L2:
+  41              		.loc 1 49 18 is_stmt 1 discriminator 1 view .LVU4
+  42 0002 1E2B     		cmp	r3, #30
+  43 0004 09D8     		bhi	.L6
+  50:Core/Src/protocol_map.c ****   {
+  51:Core/Src/protocol_map.c ****     if (g_reg_meta_table[i].addr == addr)
+  44              		.loc 1 51 5 view .LVU5
+  45              		.loc 1 51 28 is_stmt 0 view .LVU6
+  46 0006 1A01     		lsls	r2, r3, #4
+  47 0008 0549     		ldr	r1, .L8
+  48 000a 8A5A     		ldrh	r2, [r1, r2]
+  49              		.loc 1 51 8 view .LVU7
+  50 000c 8242     		cmp	r2, r0
+  51 000e 01D0     		beq	.L7
+  49:Core/Src/protocol_map.c ****   for (i = 0U; i < g_reg_meta_count; i++)
+  52              		.loc 1 49 39 is_stmt 1 discriminator 2 view .LVU8
+  53 0010 0133     		adds	r3, r3, #1
+  54              	.LVL2:
+  49:Core/Src/protocol_map.c ****   for (i = 0U; i < g_reg_meta_count; i++)
+  55              		.loc 1 49 39 is_stmt 0 discriminator 2 view .LVU9
+  56 0012 F6E7     		b	.L2
+  57              	.L7:
+  52:Core/Src/protocol_map.c ****     {
+  53:Core/Src/protocol_map.c ****       return &g_reg_meta_table[i];
+  58              		.loc 1 53 7 is_stmt 1 view .LVU10
+  59              		.loc 1 53 14 is_stmt 0 view .LVU11
+  60 0014 01EB0310 		add	r0, r1, r3, lsl #4
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 3
+
+
+  61              	.LVL3:
+  62              		.loc 1 53 14 view .LVU12
+  63 0018 7047     		bx	lr
+  64              	.LVL4:
+  65              	.L6:
+  54:Core/Src/protocol_map.c ****     }
+  55:Core/Src/protocol_map.c ****   }
+  56:Core/Src/protocol_map.c ****   return 0;
+  66              		.loc 1 56 10 view .LVU13
+  67 001a 0020     		movs	r0, #0
+  68              	.LVL5:
+  57:Core/Src/protocol_map.c **** }
+  69              		.loc 1 57 1 view .LVU14
+  70 001c 7047     		bx	lr
+  71              	.L9:
+  72 001e 00BF     		.align	2
+  73              	.L8:
+  74 0020 00000000 		.word	g_reg_meta_table
+  75              		.cfi_endproc
+  76              	.LFE239:
+  78              		.global	g_reg_meta_count
+  79              		.section	.rodata.g_reg_meta_count,"a"
+  80              		.align	2
+  83              	g_reg_meta_count:
+  84 0000 1F000000 		.word	31
+  85              		.global	g_reg_meta_table
+  86              		.section	.rodata.str1.4,"aMS",%progbits,1
+  87              		.align	2
+  88              	.LC0:
+  89 0000 746F7271 		.ascii	"torque_kNm\000"
+  89      75655F6B 
+  89      4E6D00
+  90 000b 00       		.align	2
+  91              	.LC1:
+  92 000c 706F7765 		.ascii	"power_kW\000"
+  92      725F6B57 
+  92      00
+  93 0015 000000   		.align	2
+  94              	.LC2:
+  95 0018 73706565 		.ascii	"speed_rpm\000"
+  95      645F7270 
+  95      6D00
+  96 0022 0000     		.align	2
+  97              	.LC3:
+  98 0024 74687275 		.ascii	"thrust_kN\000"
+  98      73745F6B 
+  98      4E00
+  99 002e 0000     		.align	2
+ 100              	.LC4:
+ 101 0030 7063325F 		.ascii	"pc2_low_voltage_state\000"
+ 101      6C6F775F 
+ 101      766F6C74 
+ 101      6167655F 
+ 101      73746174 
+ 102 0046 0000     		.align	2
+ 103              	.LC5:
+ 104 0048 626F6172 		.ascii	"board_low_voltage_state\000"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 4
+
+
+ 104      645F6C6F 
+ 104      775F766F 
+ 104      6C746167 
+ 104      655F7374 
+ 105              		.align	2
+ 106              	.LC6:
+ 107 0060 6176675F 		.ascii	"avg_power_kW\000"
+ 107      706F7765 
+ 107      725F6B57 
+ 107      00
+ 108 006d 000000   		.align	2
+ 109              	.LC7:
+ 110 0070 77697265 		.ascii	"wireless_frame_no\000"
+ 110      6C657373 
+ 110      5F667261 
+ 110      6D655F6E 
+ 110      6F00
+ 111 0082 0000     		.align	2
+ 112              	.LC8:
+ 113 0084 71756572 		.ascii	"query_time_h\000"
+ 113      795F7469 
+ 113      6D655F68 
+ 113      00
+ 114 0091 000000   		.align	2
+ 115              	.LC9:
+ 116 0094 73686166 		.ascii	"shaft_outer_d_mm\000"
+ 116      745F6F75 
+ 116      7465725F 
+ 116      645F6D6D 
+ 116      00
+ 117 00a5 000000   		.align	2
+ 118              	.LC10:
+ 119 00a8 73686166 		.ascii	"shaft_inner_d_mm\000"
+ 119      745F696E 
+ 119      6E65725F 
+ 119      645F6D6D 
+ 119      00
+ 120 00b9 000000   		.align	2
+ 121              	.LC11:
+ 122 00bc 73686561 		.ascii	"shear_modulus_GPa\000"
+ 122      725F6D6F 
+ 122      64756C75 
+ 122      735F4750 
+ 122      6100
+ 123 00ce 0000     		.align	2
+ 124              	.LC12:
+ 125 00d0 656C6173 		.ascii	"elastic_modulus_GPa\000"
+ 125      7469635F 
+ 125      6D6F6475 
+ 125      6C75735F 
+ 125      47506100 
+ 126              		.align	2
+ 127              	.LC13:
+ 128 00e4 706F6973 		.ascii	"poisson_ratio\000"
+ 128      736F6E5F 
+ 128      72617469 
+ 128      6F00
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 5
+
+
+ 129 00f2 0000     		.align	2
+ 130              	.LC14:
+ 131 00f4 70726F70 		.ascii	"prop_dir\000"
+ 131      5F646972 
+ 131      00
+ 132 00fd 000000   		.align	2
+ 133              	.LC15:
+ 134 0100 6D6F6475 		.ascii	"modulus_select\000"
+ 134      6C75735F 
+ 134      73656C65 
+ 134      637400
+ 135 010f 00       		.align	2
+ 136              	.LC16:
+ 137 0110 73616D70 		.ascii	"sample_freq_Hz\000"
+ 137      6C655F66 
+ 137      7265715F 
+ 137      487A00
+ 138 011f 00       		.align	2
+ 139              	.LC17:
+ 140 0120 6176675F 		.ascii	"avg_time_ms\000"
+ 140      74696D65 
+ 140      5F6D7300 
+ 141              		.align	2
+ 142              	.LC18:
+ 143 012c 6176675F 		.ascii	"avg_mode\000"
+ 143      6D6F6465 
+ 143      00
+ 144 0135 000000   		.align	2
+ 145              	.LC19:
+ 146 0138 63616C69 		.ascii	"calib_factor_ch1\000"
+ 146      625F6661 
+ 146      63746F72 
+ 146      5F636831 
+ 146      00
+ 147 0149 000000   		.align	2
+ 148              	.LC20:
+ 149 014c 63616C69 		.ascii	"calib_factor_ch2\000"
+ 149      625F6661 
+ 149      63746F72 
+ 149      5F636832 
+ 149      00
+ 150 015d 000000   		.align	2
+ 151              	.LC21:
+ 152 0160 67617567 		.ascii	"gauge_sensitivity_ch1\000"
+ 152      655F7365 
+ 152      6E736974 
+ 152      69766974 
+ 152      795F6368 
+ 153 0176 0000     		.align	2
+ 154              	.LC22:
+ 155 0178 67617567 		.ascii	"gauge_sensitivity_ch2\000"
+ 155      655F7365 
+ 155      6E736974 
+ 155      69766974 
+ 155      795F6368 
+ 156 018e 0000     		.align	2
+ 157              	.LC23:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 6
+
+
+ 158 0190 7A65726F 		.ascii	"zero_voltage_ch1\000"
+ 158      5F766F6C 
+ 158      74616765 
+ 158      5F636831 
+ 158      00
+ 159 01a1 000000   		.align	2
+ 160              	.LC24:
+ 161 01a4 7A65726F 		.ascii	"zero_voltage_ch2\000"
+ 161      5F766F6C 
+ 161      74616765 
+ 161      5F636832 
+ 161      00
+ 162 01b5 000000   		.align	2
+ 163              	.LC25:
+ 164 01b8 7A65726F 		.ascii	"zero_start\000"
+ 164      5F737461 
+ 164      727400
+ 165 01c3 00       		.align	2
+ 166              	.LC26:
+ 167 01c4 7A65726F 		.ascii	"zero_end\000"
+ 167      5F656E64 
+ 167      00
+ 168 01cd 000000   		.align	2
+ 169              	.LC27:
+ 170 01d0 666C6167 		.ascii	"flag_avg_power\000"
+ 170      5F617667 
+ 170      5F706F77 
+ 170      657200
+ 171 01df 00       		.align	2
+ 172              	.LC28:
+ 173 01e0 666C6167 		.ascii	"flag_axis_param\000"
+ 173      5F617869 
+ 173      735F7061 
+ 173      72616D00 
+ 174              		.align	2
+ 175              	.LC29:
+ 176 01f0 666C6167 		.ascii	"flag_meas_param\000"
+ 176      5F6D6561 
+ 176      735F7061 
+ 176      72616D00 
+ 177              		.align	2
+ 178              	.LC30:
+ 179 0200 666C6167 		.ascii	"flag_uart_enable\000"
+ 179      5F756172 
+ 179      745F656E 
+ 179      61626C65 
+ 179      00
+ 180              		.section	.rodata.g_reg_meta_table,"a"
+ 181              		.align	2
+ 184              	g_reg_meta_table:
+ 185 0000 D007     		.short	2000
+ 186 0002 0000     		.space	2
+ 187 0004 00000000 		.word	.LC0
+ 188 0008 02       		.byte	2
+ 189 0009 04       		.byte	4
+ 190 000a 01       		.byte	1
+ 191 000b 00       		.space	1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 7
+
+
+ 192 000c 0000     		.short	0
+ 193 000e 0000     		.space	2
+ 194 0010 D207     		.short	2002
+ 195 0012 0000     		.space	2
+ 196 0014 0C000000 		.word	.LC1
+ 197 0018 02       		.byte	2
+ 198 0019 04       		.byte	4
+ 199 001a 01       		.byte	1
+ 200 001b 00       		.space	1
+ 201 001c 0400     		.short	4
+ 202 001e 0000     		.space	2
+ 203 0020 D407     		.short	2004
+ 204 0022 0000     		.space	2
+ 205 0024 18000000 		.word	.LC2
+ 206 0028 02       		.byte	2
+ 207 0029 04       		.byte	4
+ 208 002a 02       		.byte	2
+ 209 002b 00       		.space	1
+ 210 002c 0800     		.short	8
+ 211 002e 0000     		.space	2
+ 212 0030 D607     		.short	2006
+ 213 0032 0000     		.space	2
+ 214 0034 24000000 		.word	.LC3
+ 215 0038 02       		.byte	2
+ 216 0039 04       		.byte	4
+ 217 003a 02       		.byte	2
+ 218 003b 00       		.space	1
+ 219 003c 0C00     		.short	12
+ 220 003e 0000     		.space	2
+ 221 0040 D807     		.short	2008
+ 222 0042 0000     		.space	2
+ 223 0044 30000000 		.word	.LC4
+ 224 0048 00       		.byte	0
+ 225 0049 02       		.byte	2
+ 226 004a 00       		.byte	0
+ 227 004b 00       		.space	1
+ 228 004c 1000     		.short	16
+ 229 004e 0000     		.space	2
+ 230 0050 D907     		.short	2009
+ 231 0052 0000     		.space	2
+ 232 0054 48000000 		.word	.LC5
+ 233 0058 00       		.byte	0
+ 234 0059 02       		.byte	2
+ 235 005a 00       		.byte	0
+ 236 005b 00       		.space	1
+ 237 005c 1200     		.short	18
+ 238 005e 0000     		.space	2
+ 239 0060 DA07     		.short	2010
+ 240 0062 0000     		.space	2
+ 241 0064 60000000 		.word	.LC6
+ 242 0068 02       		.byte	2
+ 243 0069 04       		.byte	4
+ 244 006a 01       		.byte	1
+ 245 006b 00       		.space	1
+ 246 006c 1400     		.short	20
+ 247 006e 0000     		.space	2
+ 248 0070 DC07     		.short	2012
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 8
+
+
+ 249 0072 0000     		.space	2
+ 250 0074 70000000 		.word	.LC7
+ 251 0078 00       		.byte	0
+ 252 0079 02       		.byte	2
+ 253 007a 00       		.byte	0
+ 254 007b 00       		.space	1
+ 255 007c 1800     		.short	24
+ 256 007e 0000     		.space	2
+ 257 0080 C409     		.short	2500
+ 258 0082 0000     		.space	2
+ 259 0084 84000000 		.word	.LC8
+ 260 0088 02       		.byte	2
+ 261 0089 04       		.byte	4
+ 262 008a 01       		.byte	1
+ 263 008b 00       		.space	1
+ 264 008c 1C00     		.short	28
+ 265 008e 0000     		.space	2
+ 266 0090 C609     		.short	2502
+ 267 0092 0000     		.space	2
+ 268 0094 94000000 		.word	.LC9
+ 269 0098 02       		.byte	2
+ 270 0099 04       		.byte	4
+ 271 009a 02       		.byte	2
+ 272 009b 00       		.space	1
+ 273 009c 2000     		.short	32
+ 274 009e 0000     		.space	2
+ 275 00a0 C809     		.short	2504
+ 276 00a2 0000     		.space	2
+ 277 00a4 A8000000 		.word	.LC10
+ 278 00a8 02       		.byte	2
+ 279 00a9 04       		.byte	4
+ 280 00aa 02       		.byte	2
+ 281 00ab 00       		.space	1
+ 282 00ac 2400     		.short	36
+ 283 00ae 0000     		.space	2
+ 284 00b0 CA09     		.short	2506
+ 285 00b2 0000     		.space	2
+ 286 00b4 BC000000 		.word	.LC11
+ 287 00b8 02       		.byte	2
+ 288 00b9 04       		.byte	4
+ 289 00ba 02       		.byte	2
+ 290 00bb 00       		.space	1
+ 291 00bc 2800     		.short	40
+ 292 00be 0000     		.space	2
+ 293 00c0 CC09     		.short	2508
+ 294 00c2 0000     		.space	2
+ 295 00c4 D0000000 		.word	.LC12
+ 296 00c8 02       		.byte	2
+ 297 00c9 04       		.byte	4
+ 298 00ca 02       		.byte	2
+ 299 00cb 00       		.space	1
+ 300 00cc 2C00     		.short	44
+ 301 00ce 0000     		.space	2
+ 302 00d0 CE09     		.short	2510
+ 303 00d2 0000     		.space	2
+ 304 00d4 E4000000 		.word	.LC13
+ 305 00d8 02       		.byte	2
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 9
+
+
+ 306 00d9 04       		.byte	4
+ 307 00da 04       		.byte	4
+ 308 00db 00       		.space	1
+ 309 00dc 3000     		.short	48
+ 310 00de 0000     		.space	2
+ 311 00e0 D009     		.short	2512
+ 312 00e2 0000     		.space	2
+ 313 00e4 F4000000 		.word	.LC14
+ 314 00e8 00       		.byte	0
+ 315 00e9 02       		.byte	2
+ 316 00ea 00       		.byte	0
+ 317 00eb 00       		.space	1
+ 318 00ec 3400     		.short	52
+ 319 00ee 0000     		.space	2
+ 320 00f0 D109     		.short	2513
+ 321 00f2 0000     		.space	2
+ 322 00f4 00010000 		.word	.LC15
+ 323 00f8 00       		.byte	0
+ 324 00f9 02       		.byte	2
+ 325 00fa 00       		.byte	0
+ 326 00fb 00       		.space	1
+ 327 00fc 3600     		.short	54
+ 328 00fe 0000     		.space	2
+ 329 0100 D209     		.short	2514
+ 330 0102 0000     		.space	2
+ 331 0104 10010000 		.word	.LC16
+ 332 0108 02       		.byte	2
+ 333 0109 04       		.byte	4
+ 334 010a 02       		.byte	2
+ 335 010b 00       		.space	1
+ 336 010c 3800     		.short	56
+ 337 010e 0000     		.space	2
+ 338 0110 D409     		.short	2516
+ 339 0112 0000     		.space	2
+ 340 0114 20010000 		.word	.LC17
+ 341 0118 01       		.byte	1
+ 342 0119 04       		.byte	4
+ 343 011a 00       		.byte	0
+ 344 011b 00       		.space	1
+ 345 011c 3C00     		.short	60
+ 346 011e 0000     		.space	2
+ 347 0120 D609     		.short	2518
+ 348 0122 0000     		.space	2
+ 349 0124 2C010000 		.word	.LC18
+ 350 0128 00       		.byte	0
+ 351 0129 02       		.byte	2
+ 352 012a 00       		.byte	0
+ 353 012b 00       		.space	1
+ 354 012c 4000     		.short	64
+ 355 012e 0000     		.space	2
+ 356 0130 D709     		.short	2519
+ 357 0132 0000     		.space	2
+ 358 0134 38010000 		.word	.LC19
+ 359 0138 02       		.byte	2
+ 360 0139 04       		.byte	4
+ 361 013a 04       		.byte	4
+ 362 013b 00       		.space	1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 10
+
+
+ 363 013c 4400     		.short	68
+ 364 013e 0000     		.space	2
+ 365 0140 D909     		.short	2521
+ 366 0142 0000     		.space	2
+ 367 0144 4C010000 		.word	.LC20
+ 368 0148 02       		.byte	2
+ 369 0149 04       		.byte	4
+ 370 014a 04       		.byte	4
+ 371 014b 00       		.space	1
+ 372 014c 4800     		.short	72
+ 373 014e 0000     		.space	2
+ 374 0150 DB09     		.short	2523
+ 375 0152 0000     		.space	2
+ 376 0154 60010000 		.word	.LC21
+ 377 0158 02       		.byte	2
+ 378 0159 04       		.byte	4
+ 379 015a 03       		.byte	3
+ 380 015b 00       		.space	1
+ 381 015c 4C00     		.short	76
+ 382 015e 0000     		.space	2
+ 383 0160 DD09     		.short	2525
+ 384 0162 0000     		.space	2
+ 385 0164 78010000 		.word	.LC22
+ 386 0168 02       		.byte	2
+ 387 0169 04       		.byte	4
+ 388 016a 03       		.byte	3
+ 389 016b 00       		.space	1
+ 390 016c 5000     		.short	80
+ 391 016e 0000     		.space	2
+ 392 0170 DF09     		.short	2527
+ 393 0172 0000     		.space	2
+ 394 0174 90010000 		.word	.LC23
+ 395 0178 02       		.byte	2
+ 396 0179 04       		.byte	4
+ 397 017a 03       		.byte	3
+ 398 017b 00       		.space	1
+ 399 017c 5400     		.short	84
+ 400 017e 0000     		.space	2
+ 401 0180 E109     		.short	2529
+ 402 0182 0000     		.space	2
+ 403 0184 A4010000 		.word	.LC24
+ 404 0188 02       		.byte	2
+ 405 0189 04       		.byte	4
+ 406 018a 03       		.byte	3
+ 407 018b 00       		.space	1
+ 408 018c 5800     		.short	88
+ 409 018e 0000     		.space	2
+ 410 0190 E309     		.short	2531
+ 411 0192 0000     		.space	2
+ 412 0194 B8010000 		.word	.LC25
+ 413 0198 00       		.byte	0
+ 414 0199 02       		.byte	2
+ 415 019a 00       		.byte	0
+ 416 019b 00       		.space	1
+ 417 019c 5C00     		.short	92
+ 418 019e 0000     		.space	2
+ 419 01a0 E409     		.short	2532
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 11
+
+
+ 420 01a2 0000     		.space	2
+ 421 01a4 C4010000 		.word	.LC26
+ 422 01a8 00       		.byte	0
+ 423 01a9 02       		.byte	2
+ 424 01aa 00       		.byte	0
+ 425 01ab 00       		.space	1
+ 426 01ac 5E00     		.short	94
+ 427 01ae 0000     		.space	2
+ 428 01b0 F00A     		.short	2800
+ 429 01b2 0000     		.space	2
+ 430 01b4 D0010000 		.word	.LC27
+ 431 01b8 00       		.byte	0
+ 432 01b9 02       		.byte	2
+ 433 01ba 00       		.byte	0
+ 434 01bb 00       		.space	1
+ 435 01bc 6000     		.short	96
+ 436 01be 0000     		.space	2
+ 437 01c0 F10A     		.short	2801
+ 438 01c2 0000     		.space	2
+ 439 01c4 E0010000 		.word	.LC28
+ 440 01c8 00       		.byte	0
+ 441 01c9 02       		.byte	2
+ 442 01ca 00       		.byte	0
+ 443 01cb 00       		.space	1
+ 444 01cc 6200     		.short	98
+ 445 01ce 0000     		.space	2
+ 446 01d0 F20A     		.short	2802
+ 447 01d2 0000     		.space	2
+ 448 01d4 F0010000 		.word	.LC29
+ 449 01d8 00       		.byte	0
+ 450 01d9 02       		.byte	2
+ 451 01da 00       		.byte	0
+ 452 01db 00       		.space	1
+ 453 01dc 6400     		.short	100
+ 454 01de 0000     		.space	2
+ 455 01e0 F30A     		.short	2803
+ 456 01e2 0000     		.space	2
+ 457 01e4 00020000 		.word	.LC30
+ 458 01e8 00       		.byte	0
+ 459 01e9 02       		.byte	2
+ 460 01ea 00       		.byte	0
+ 461 01eb 00       		.space	1
+ 462 01ec 6600     		.short	102
+ 463 01ee 0000     		.space	2
+ 464              		.text
+ 465              	.Letext0:
+ 466              		.file 2 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 467              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 468              		.file 4 "Core/Inc/protocol_map.h"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc9jahsO.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 protocol_map.c
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:21     .text.ProtocolMap_Find:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:27     .text.ProtocolMap_Find:00000000 ProtocolMap_Find
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:74     .text.ProtocolMap_Find:00000020 $d
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:184    .rodata.g_reg_meta_table:00000000 g_reg_meta_table
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:83     .rodata.g_reg_meta_count:00000000 g_reg_meta_count
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:80     .rodata.g_reg_meta_count:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:87     .rodata.str1.4:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cc9jahsO.s:181    .rodata.g_reg_meta_table:00000000 $d
+
+NO UNDEFINED SYMBOLS

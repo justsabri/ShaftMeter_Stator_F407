@@ -1,0 +1,385 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"fatfs.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "FATFS/App/fatfs.c"
+  20              		.section	.text.MX_FATFS_Init,"ax",%progbits
+  21              		.align	1
+  22              		.global	MX_FATFS_Init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	MX_FATFS_Init:
+  28              	.LFB243:
+   1:FATFS/App/fatfs.c **** /* USER CODE BEGIN Header */
+   2:FATFS/App/fatfs.c **** /**
+   3:FATFS/App/fatfs.c ****   ******************************************************************************
+   4:FATFS/App/fatfs.c ****   * @file   fatfs.c
+   5:FATFS/App/fatfs.c ****   * @brief  Code for fatfs applications
+   6:FATFS/App/fatfs.c ****   ******************************************************************************
+   7:FATFS/App/fatfs.c ****   * @attention
+   8:FATFS/App/fatfs.c ****   *
+   9:FATFS/App/fatfs.c ****   * Copyright (c) 2026 STMicroelectronics.
+  10:FATFS/App/fatfs.c ****   * All rights reserved.
+  11:FATFS/App/fatfs.c ****   *
+  12:FATFS/App/fatfs.c ****   * This software is licensed under terms that can be found in the LICENSE file
+  13:FATFS/App/fatfs.c ****   * in the root directory of this software component.
+  14:FATFS/App/fatfs.c ****   * If no LICENSE file comes with this software, it is provided AS-IS.
+  15:FATFS/App/fatfs.c ****   *
+  16:FATFS/App/fatfs.c ****   ******************************************************************************
+  17:FATFS/App/fatfs.c ****   */
+  18:FATFS/App/fatfs.c **** /* USER CODE END Header */
+  19:FATFS/App/fatfs.c **** #include "fatfs.h"
+  20:FATFS/App/fatfs.c **** #include "main.h"
+  21:FATFS/App/fatfs.c **** 
+  22:FATFS/App/fatfs.c **** uint8_t retSD;    /* Return value for SD */
+  23:FATFS/App/fatfs.c **** char SDPath[4];   /* SD logical drive path */
+  24:FATFS/App/fatfs.c **** FATFS SDFatFS;    /* File system object for SD logical drive */
+  25:FATFS/App/fatfs.c **** FIL SDFile;       /* File object for SD */
+  26:FATFS/App/fatfs.c **** 
+  27:FATFS/App/fatfs.c **** /* USER CODE BEGIN Variables */
+  28:FATFS/App/fatfs.c **** 
+  29:FATFS/App/fatfs.c **** /* USER CODE END Variables */
+  30:FATFS/App/fatfs.c **** 
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 2
+
+
+  31:FATFS/App/fatfs.c **** void MX_FATFS_Init(void)
+  32:FATFS/App/fatfs.c **** {
+  29              		.loc 1 32 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  33:FATFS/App/fatfs.c ****   /*## FatFS: Link the SD driver ###########################*/
+  34:FATFS/App/fatfs.c ****   retSD = FATFS_LinkDriver(&SD_Driver, SDPath);
+  38              		.loc 1 34 3 view .LVU1
+  39              		.loc 1 34 11 is_stmt 0 view .LVU2
+  40 0002 0349     		ldr	r1, .L3
+  41 0004 0348     		ldr	r0, .L3+4
+  42 0006 FFF7FEFF 		bl	FATFS_LinkDriver
+  43              	.LVL0:
+  44              		.loc 1 34 9 discriminator 1 view .LVU3
+  45 000a 034B     		ldr	r3, .L3+8
+  46 000c 1870     		strb	r0, [r3]
+  35:FATFS/App/fatfs.c **** 
+  36:FATFS/App/fatfs.c ****   /* USER CODE BEGIN Init */
+  37:FATFS/App/fatfs.c ****   /* additional user code for init */
+  38:FATFS/App/fatfs.c ****   /* USER CODE END Init */
+  39:FATFS/App/fatfs.c **** }
+  47              		.loc 1 39 1 view .LVU4
+  48 000e 08BD     		pop	{r3, pc}
+  49              	.L4:
+  50              		.align	2
+  51              	.L3:
+  52 0010 00000000 		.word	SDPath
+  53 0014 00000000 		.word	SD_Driver
+  54 0018 00000000 		.word	retSD
+  55              		.cfi_endproc
+  56              	.LFE243:
+  58              		.section	.text.get_fattime,"ax",%progbits
+  59              		.align	1
+  60              		.global	get_fattime
+  61              		.syntax unified
+  62              		.thumb
+  63              		.thumb_func
+  65              	get_fattime:
+  66              	.LFB244:
+  40:FATFS/App/fatfs.c **** 
+  41:FATFS/App/fatfs.c **** /**
+  42:FATFS/App/fatfs.c ****   * @brief  Gets Time from RTC
+  43:FATFS/App/fatfs.c ****   * @param  None
+  44:FATFS/App/fatfs.c ****   * @retval Time in DWORD
+  45:FATFS/App/fatfs.c ****   */
+  46:FATFS/App/fatfs.c **** DWORD get_fattime(void)
+  47:FATFS/App/fatfs.c **** {
+  67              		.loc 1 47 1 is_stmt 1 view -0
+  68              		.cfi_startproc
+  69              		@ args = 0, pretend = 0, frame = 24
+  70              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 3
+
+
+  71 0000 00B5     		push	{lr}
+  72              	.LCFI1:
+  73              		.cfi_def_cfa_offset 4
+  74              		.cfi_offset 14, -4
+  75 0002 87B0     		sub	sp, sp, #28
+  76              	.LCFI2:
+  77              		.cfi_def_cfa_offset 32
+  48:FATFS/App/fatfs.c ****   /* USER CODE BEGIN get_fattime */
+  49:FATFS/App/fatfs.c ****   RTC_TimeTypeDef sTime;
+  78              		.loc 1 49 3 view .LVU6
+  50:FATFS/App/fatfs.c ****   RTC_DateTypeDef sDate;
+  79              		.loc 1 50 3 view .LVU7
+  51:FATFS/App/fatfs.c ****   uint16_t year;
+  80              		.loc 1 51 3 view .LVU8
+  52:FATFS/App/fatfs.c **** 
+  53:FATFS/App/fatfs.c ****   extern RTC_HandleTypeDef hrtc;
+  81              		.loc 1 53 3 view .LVU9
+  54:FATFS/App/fatfs.c **** 
+  55:FATFS/App/fatfs.c ****   if (HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+  82              		.loc 1 55 3 view .LVU10
+  83              		.loc 1 55 7 is_stmt 0 view .LVU11
+  84 0004 0022     		movs	r2, #0
+  85 0006 01A9     		add	r1, sp, #4
+  86 0008 1E48     		ldr	r0, .L15
+  87 000a FFF7FEFF 		bl	HAL_RTC_GetTime
+  88              	.LVL1:
+  89              		.loc 1 55 6 discriminator 1 view .LVU12
+  90 000e 18B1     		cbz	r0, .L14
+  56:FATFS/App/fatfs.c ****   {
+  57:FATFS/App/fatfs.c ****     return 0;
+  91              		.loc 1 57 12 view .LVU13
+  92 0010 0020     		movs	r0, #0
+  93              	.L5:
+  58:FATFS/App/fatfs.c ****   }
+  59:FATFS/App/fatfs.c ****   if (HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
+  60:FATFS/App/fatfs.c ****   {
+  61:FATFS/App/fatfs.c ****     return 0;
+  62:FATFS/App/fatfs.c ****   }
+  63:FATFS/App/fatfs.c **** 
+  64:FATFS/App/fatfs.c ****   year = (uint16_t)(2000U + sDate.Year);
+  65:FATFS/App/fatfs.c ****   if (year < 1980U)
+  66:FATFS/App/fatfs.c ****   {
+  67:FATFS/App/fatfs.c ****     year = 1980U;
+  68:FATFS/App/fatfs.c ****   }
+  69:FATFS/App/fatfs.c ****   if (sDate.Month < 1U)
+  70:FATFS/App/fatfs.c ****   {
+  71:FATFS/App/fatfs.c ****     sDate.Month = 1U;
+  72:FATFS/App/fatfs.c ****   }
+  73:FATFS/App/fatfs.c ****   if (sDate.Date < 1U)
+  74:FATFS/App/fatfs.c ****   {
+  75:FATFS/App/fatfs.c ****     sDate.Date = 1U;
+  76:FATFS/App/fatfs.c ****   }
+  77:FATFS/App/fatfs.c **** 
+  78:FATFS/App/fatfs.c ****   return ((DWORD)(year - 1980U) << 25) |
+  79:FATFS/App/fatfs.c ****          ((DWORD)sDate.Month << 21) |
+  80:FATFS/App/fatfs.c ****          ((DWORD)sDate.Date << 16) |
+  81:FATFS/App/fatfs.c ****          ((DWORD)sTime.Hours << 11) |
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 4
+
+
+  82:FATFS/App/fatfs.c ****          ((DWORD)sTime.Minutes << 5) |
+  83:FATFS/App/fatfs.c ****          ((DWORD)(sTime.Seconds / 2U));
+  84:FATFS/App/fatfs.c ****   /* USER CODE END get_fattime */
+  85:FATFS/App/fatfs.c **** }
+  94              		.loc 1 85 1 view .LVU14
+  95 0012 07B0     		add	sp, sp, #28
+  96              	.LCFI3:
+  97              		.cfi_remember_state
+  98              		.cfi_def_cfa_offset 4
+  99              		@ sp needed
+ 100 0014 5DF804FB 		ldr	pc, [sp], #4
+ 101              	.L14:
+ 102              	.LCFI4:
+ 103              		.cfi_restore_state
+  59:FATFS/App/fatfs.c ****   {
+ 104              		.loc 1 59 3 is_stmt 1 view .LVU15
+  59:FATFS/App/fatfs.c ****   {
+ 105              		.loc 1 59 7 is_stmt 0 view .LVU16
+ 106 0018 0022     		movs	r2, #0
+ 107 001a 6946     		mov	r1, sp
+ 108 001c 1948     		ldr	r0, .L15
+ 109 001e FFF7FEFF 		bl	HAL_RTC_GetDate
+ 110              	.LVL2:
+  59:FATFS/App/fatfs.c ****   {
+ 111              		.loc 1 59 6 discriminator 1 view .LVU17
+ 112 0022 68BB     		cbnz	r0, .L11
+  64:FATFS/App/fatfs.c ****   if (year < 1980U)
+ 113              		.loc 1 64 3 is_stmt 1 view .LVU18
+  64:FATFS/App/fatfs.c ****   if (year < 1980U)
+ 114              		.loc 1 64 34 is_stmt 0 view .LVU19
+ 115 0024 9DF80330 		ldrb	r3, [sp, #3]	@ zero_extendqisi2
+  64:FATFS/App/fatfs.c ****   if (year < 1980U)
+ 116              		.loc 1 64 8 view .LVU20
+ 117 0028 03F5FA63 		add	r3, r3, #2000
+ 118              	.LVL3:
+  65:FATFS/App/fatfs.c ****   {
+ 119              		.loc 1 65 3 is_stmt 1 view .LVU21
+  65:FATFS/App/fatfs.c ****   {
+ 120              		.loc 1 65 6 is_stmt 0 view .LVU22
+ 121 002c 40F2BB72 		movw	r2, #1979
+ 122 0030 9342     		cmp	r3, r2
+ 123 0032 01D8     		bhi	.L7
+  67:FATFS/App/fatfs.c ****   }
+ 124              		.loc 1 67 10 view .LVU23
+ 125 0034 40F2BC73 		movw	r3, #1980
+ 126              	.LVL4:
+ 127              	.L7:
+  69:FATFS/App/fatfs.c ****   {
+ 128              		.loc 1 69 3 is_stmt 1 view .LVU24
+  69:FATFS/App/fatfs.c ****   {
+ 129              		.loc 1 69 12 is_stmt 0 view .LVU25
+ 130 0038 9DF80120 		ldrb	r2, [sp, #1]	@ zero_extendqisi2
+  69:FATFS/App/fatfs.c ****   {
+ 131              		.loc 1 69 6 view .LVU26
+ 132 003c 12B9     		cbnz	r2, .L8
+  71:FATFS/App/fatfs.c ****   }
+ 133              		.loc 1 71 5 is_stmt 1 view .LVU27
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 5
+
+
+  71:FATFS/App/fatfs.c ****   }
+ 134              		.loc 1 71 17 is_stmt 0 view .LVU28
+ 135 003e 0122     		movs	r2, #1
+ 136 0040 8DF80120 		strb	r2, [sp, #1]
+ 137              	.L8:
+  73:FATFS/App/fatfs.c ****   {
+ 138              		.loc 1 73 3 is_stmt 1 view .LVU29
+  73:FATFS/App/fatfs.c ****   {
+ 139              		.loc 1 73 12 is_stmt 0 view .LVU30
+ 140 0044 9DF80220 		ldrb	r2, [sp, #2]	@ zero_extendqisi2
+  73:FATFS/App/fatfs.c ****   {
+ 141              		.loc 1 73 6 view .LVU31
+ 142 0048 12B9     		cbnz	r2, .L9
+  75:FATFS/App/fatfs.c ****   }
+ 143              		.loc 1 75 5 is_stmt 1 view .LVU32
+  75:FATFS/App/fatfs.c ****   }
+ 144              		.loc 1 75 16 is_stmt 0 view .LVU33
+ 145 004a 0122     		movs	r2, #1
+ 146 004c 8DF80220 		strb	r2, [sp, #2]
+ 147              	.L9:
+  78:FATFS/App/fatfs.c ****          ((DWORD)sDate.Month << 21) |
+ 148              		.loc 1 78 3 is_stmt 1 view .LVU34
+  78:FATFS/App/fatfs.c ****          ((DWORD)sDate.Month << 21) |
+ 149              		.loc 1 78 24 is_stmt 0 view .LVU35
+ 150 0050 A3F2BC73 		subw	r3, r3, #1980
+ 151              	.LVL5:
+  79:FATFS/App/fatfs.c ****          ((DWORD)sDate.Date << 16) |
+ 152              		.loc 1 79 23 view .LVU36
+ 153 0054 9DF80100 		ldrb	r0, [sp, #1]	@ zero_extendqisi2
+  79:FATFS/App/fatfs.c ****          ((DWORD)sDate.Date << 16) |
+ 154              		.loc 1 79 30 view .LVU37
+ 155 0058 4005     		lsls	r0, r0, #21
+  78:FATFS/App/fatfs.c ****          ((DWORD)sDate.Month << 21) |
+ 156              		.loc 1 78 40 view .LVU38
+ 157 005a 40EA4360 		orr	r0, r0, r3, lsl #25
+  80:FATFS/App/fatfs.c ****          ((DWORD)sTime.Hours << 11) |
+ 158              		.loc 1 80 23 view .LVU39
+ 159 005e 9DF80230 		ldrb	r3, [sp, #2]	@ zero_extendqisi2
+  79:FATFS/App/fatfs.c ****          ((DWORD)sDate.Date << 16) |
+ 160              		.loc 1 79 37 view .LVU40
+ 161 0062 40EA0340 		orr	r0, r0, r3, lsl #16
+  81:FATFS/App/fatfs.c ****          ((DWORD)sTime.Minutes << 5) |
+ 162              		.loc 1 81 23 view .LVU41
+ 163 0066 9DF80430 		ldrb	r3, [sp, #4]	@ zero_extendqisi2
+  80:FATFS/App/fatfs.c ****          ((DWORD)sTime.Hours << 11) |
+ 164              		.loc 1 80 36 view .LVU42
+ 165 006a 40EAC320 		orr	r0, r0, r3, lsl #11
+  82:FATFS/App/fatfs.c ****          ((DWORD)(sTime.Seconds / 2U));
+ 166              		.loc 1 82 23 view .LVU43
+ 167 006e 9DF80530 		ldrb	r3, [sp, #5]	@ zero_extendqisi2
+  81:FATFS/App/fatfs.c ****          ((DWORD)sTime.Minutes << 5) |
+ 168              		.loc 1 81 37 view .LVU44
+ 169 0072 40EA4310 		orr	r0, r0, r3, lsl #5
+  83:FATFS/App/fatfs.c ****   /* USER CODE END get_fattime */
+ 170              		.loc 1 83 24 view .LVU45
+ 171 0076 9DF80630 		ldrb	r3, [sp, #6]	@ zero_extendqisi2
+  82:FATFS/App/fatfs.c ****          ((DWORD)(sTime.Seconds / 2U));
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 6
+
+
+ 172              		.loc 1 82 38 view .LVU46
+ 173 007a 40EA5300 		orr	r0, r0, r3, lsr #1
+ 174 007e C8E7     		b	.L5
+ 175              	.LVL6:
+ 176              	.L11:
+  61:FATFS/App/fatfs.c ****   }
+ 177              		.loc 1 61 12 view .LVU47
+ 178 0080 0020     		movs	r0, #0
+ 179 0082 C6E7     		b	.L5
+ 180              	.L16:
+ 181              		.align	2
+ 182              	.L15:
+ 183 0084 00000000 		.word	hrtc
+ 184              		.cfi_endproc
+ 185              	.LFE244:
+ 187              		.global	SDFile
+ 188              		.section	.bss.SDFile,"aw",%nobits
+ 189              		.align	2
+ 192              	SDFile:
+ 193 0000 00000000 		.space	560
+ 193      00000000 
+ 193      00000000 
+ 193      00000000 
+ 193      00000000 
+ 194              		.global	SDFatFS
+ 195              		.section	.bss.SDFatFS,"aw",%nobits
+ 196              		.align	2
+ 199              	SDFatFS:
+ 200 0000 00000000 		.space	568
+ 200      00000000 
+ 200      00000000 
+ 200      00000000 
+ 200      00000000 
+ 201              		.global	SDPath
+ 202              		.section	.bss.SDPath,"aw",%nobits
+ 203              		.align	2
+ 206              	SDPath:
+ 207 0000 00000000 		.space	4
+ 208              		.global	retSD
+ 209              		.section	.bss.retSD,"aw",%nobits
+ 212              	retSD:
+ 213 0000 00       		.space	1
+ 214              		.text
+ 215              	.Letext0:
+ 216              		.file 2 "Middlewares/Third_Party/FatFs/src/integer.h"
+ 217              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 218              		.file 4 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 219              		.file 5 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f407xx.h"
+ 220              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 221              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rtc.h"
+ 222              		.file 8 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 223              		.file 9 "Middlewares/Third_Party/FatFs/src/ff.h"
+ 224              		.file 10 "Middlewares/Third_Party/FatFs/src/diskio.h"
+ 225              		.file 11 "Middlewares/Third_Party/FatFs/src/ff_gen_drv.h"
+ 226              		.file 12 "FATFS/Target/sd_diskio.h"
+ 227              		.file 13 "FATFS/App/fatfs.h"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cc92PBDd.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 fatfs.c
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:21     .text.MX_FATFS_Init:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:27     .text.MX_FATFS_Init:00000000 MX_FATFS_Init
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:52     .text.MX_FATFS_Init:00000010 $d
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:206    .bss.SDPath:00000000 SDPath
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:212    .bss.retSD:00000000 retSD
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:59     .text.get_fattime:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:65     .text.get_fattime:00000000 get_fattime
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:183    .text.get_fattime:00000084 $d
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:192    .bss.SDFile:00000000 SDFile
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:189    .bss.SDFile:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:199    .bss.SDFatFS:00000000 SDFatFS
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:196    .bss.SDFatFS:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:203    .bss.SDPath:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cc92PBDd.s:213    .bss.retSD:00000000 $d
+
+UNDEFINED SYMBOLS
+FATFS_LinkDriver
+SD_Driver
+HAL_RTC_GetTime
+HAL_RTC_GetDate
+hrtc

@@ -1,0 +1,925 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"app_tx_result.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/app_tx_result.c"
+  20              		.section	.text.AppTxResult_FloatToRegs,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	AppTxResult_FloatToRegs:
+  27              	.LVL0:
+  28              	.LFB239:
+   1:Core/Src/app_tx_result.c **** #include "app_tx_result.h"
+   2:Core/Src/app_tx_result.c **** #include "modbus_master.h"
+   3:Core/Src/app_tx_result.c **** #include <string.h>
+   4:Core/Src/app_tx_result.c **** 
+   5:Core/Src/app_tx_result.c **** #define TX_RESULT_REG_COUNT 8U
+   6:Core/Src/app_tx_result.c **** 
+   7:Core/Src/app_tx_result.c **** static void AppTxResult_FloatToRegs(float value, uint8_t *out_hi, uint8_t *out_lo)
+   8:Core/Src/app_tx_result.c **** {
+  29              		.loc 1 8 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 8
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 8 1 is_stmt 0 view .LVU1
+  35 0000 82B0     		sub	sp, sp, #8
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 8
+  38 0002 8DED010A 		vstr.32	s0, [sp, #4]
+   9:Core/Src/app_tx_result.c ****   uint32_t raw;
+  39              		.loc 1 9 3 is_stmt 1 view .LVU2
+  10:Core/Src/app_tx_result.c ****   memcpy(&raw, &value, sizeof(raw));
+  40              		.loc 1 10 3 view .LVU3
+  41 0006 019B     		ldr	r3, [sp, #4]
+  42              	.LVL1:
+  11:Core/Src/app_tx_result.c ****   out_hi[0] = (uint8_t)(raw >> 24);
+  43              		.loc 1 11 3 view .LVU4
+  44              		.loc 1 11 15 is_stmt 0 view .LVU5
+  45 0008 1A0E     		lsrs	r2, r3, #24
+  46              		.loc 1 11 13 view .LVU6
+  47 000a 0270     		strb	r2, [r0]
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 2
+
+
+  12:Core/Src/app_tx_result.c ****   out_hi[1] = (uint8_t)(raw >> 16);
+  48              		.loc 1 12 3 is_stmt 1 view .LVU7
+  49              		.loc 1 12 15 is_stmt 0 view .LVU8
+  50 000c C3F30742 		ubfx	r2, r3, #16, #8
+  51              		.loc 1 12 13 view .LVU9
+  52 0010 4270     		strb	r2, [r0, #1]
+  13:Core/Src/app_tx_result.c ****   out_lo[0] = (uint8_t)(raw >> 8);
+  53              		.loc 1 13 3 is_stmt 1 view .LVU10
+  54              		.loc 1 13 15 is_stmt 0 view .LVU11
+  55 0012 C3F30722 		ubfx	r2, r3, #8, #8
+  56              		.loc 1 13 13 view .LVU12
+  57 0016 0A70     		strb	r2, [r1]
+  14:Core/Src/app_tx_result.c ****   out_lo[1] = (uint8_t)raw;
+  58              		.loc 1 14 3 is_stmt 1 view .LVU13
+  59              		.loc 1 14 13 is_stmt 0 view .LVU14
+  60 0018 4B70     		strb	r3, [r1, #1]
+  15:Core/Src/app_tx_result.c **** }
+  61              		.loc 1 15 1 view .LVU15
+  62 001a 02B0     		add	sp, sp, #8
+  63              	.LCFI1:
+  64              		.cfi_def_cfa_offset 0
+  65              		@ sp needed
+  66 001c 7047     		bx	lr
+  67              		.cfi_endproc
+  68              	.LFE239:
+  70              		.section	.text.AppTxResult_SetRs485Usart2,"ax",%progbits
+  71              		.align	1
+  72              		.global	AppTxResult_SetRs485Usart2
+  73              		.syntax unified
+  74              		.thumb
+  75              		.thumb_func
+  77              	AppTxResult_SetRs485Usart2:
+  78              	.LVL2:
+  79              	.LFB240:
+  16:Core/Src/app_tx_result.c **** 
+  17:Core/Src/app_tx_result.c **** void AppTxResult_SetRs485Usart2(uint8_t enable)
+  18:Core/Src/app_tx_result.c **** {
+  80              		.loc 1 18 1 is_stmt 1 view -0
+  81              		.cfi_startproc
+  82              		@ args = 0, pretend = 0, frame = 0
+  83              		@ frame_needed = 0, uses_anonymous_args = 0
+  84              		.loc 1 18 1 is_stmt 0 view .LVU17
+  85 0000 08B5     		push	{r3, lr}
+  86              	.LCFI2:
+  87              		.cfi_def_cfa_offset 8
+  88              		.cfi_offset 3, -8
+  89              		.cfi_offset 14, -4
+  19:Core/Src/app_tx_result.c ****   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  90              		.loc 1 19 3 is_stmt 1 view .LVU18
+  91 0002 021E     		subs	r2, r0, #0
+  92 0004 18BF     		it	ne
+  93 0006 0122     		movne	r2, #1
+  94 0008 4FF48051 		mov	r1, #4096
+  95 000c 0148     		ldr	r0, .L5
+  96              	.LVL3:
+  97              		.loc 1 19 3 is_stmt 0 view .LVU19
+  98 000e FFF7FEFF 		bl	HAL_GPIO_WritePin
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 3
+
+
+  99              	.LVL4:
+  20:Core/Src/app_tx_result.c **** }
+ 100              		.loc 1 20 1 view .LVU20
+ 101 0012 08BD     		pop	{r3, pc}
+ 102              	.L6:
+ 103              		.align	2
+ 104              	.L5:
+ 105 0014 00040240 		.word	1073873920
+ 106              		.cfi_endproc
+ 107              	.LFE240:
+ 109              		.section	.text.AppTxResult_SetRs485Usart3,"ax",%progbits
+ 110              		.align	1
+ 111              		.global	AppTxResult_SetRs485Usart3
+ 112              		.syntax unified
+ 113              		.thumb
+ 114              		.thumb_func
+ 116              	AppTxResult_SetRs485Usart3:
+ 117              	.LVL5:
+ 118              	.LFB241:
+  21:Core/Src/app_tx_result.c **** 
+  22:Core/Src/app_tx_result.c **** void AppTxResult_SetRs485Usart3(uint8_t enable)
+  23:Core/Src/app_tx_result.c **** {
+ 119              		.loc 1 23 1 is_stmt 1 view -0
+ 120              		.cfi_startproc
+ 121              		@ args = 0, pretend = 0, frame = 0
+ 122              		@ frame_needed = 0, uses_anonymous_args = 0
+ 123              		.loc 1 23 1 is_stmt 0 view .LVU22
+ 124 0000 08B5     		push	{r3, lr}
+ 125              	.LCFI3:
+ 126              		.cfi_def_cfa_offset 8
+ 127              		.cfi_offset 3, -8
+ 128              		.cfi_offset 14, -4
+  24:Core/Src/app_tx_result.c ****   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+ 129              		.loc 1 24 3 is_stmt 1 view .LVU23
+ 130 0002 021E     		subs	r2, r0, #0
+ 131 0004 18BF     		it	ne
+ 132 0006 0122     		movne	r2, #1
+ 133 0008 2021     		movs	r1, #32
+ 134 000a 0248     		ldr	r0, .L9
+ 135              	.LVL6:
+ 136              		.loc 1 24 3 is_stmt 0 view .LVU24
+ 137 000c FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 138              	.LVL7:
+  25:Core/Src/app_tx_result.c **** }
+ 139              		.loc 1 25 1 view .LVU25
+ 140 0010 08BD     		pop	{r3, pc}
+ 141              	.L10:
+ 142 0012 00BF     		.align	2
+ 143              	.L9:
+ 144 0014 00080240 		.word	1073874944
+ 145              		.cfi_endproc
+ 146              	.LFE241:
+ 148              		.section	.text.AppTxResult_SetRs485Usart6,"ax",%progbits
+ 149              		.align	1
+ 150              		.global	AppTxResult_SetRs485Usart6
+ 151              		.syntax unified
+ 152              		.thumb
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 4
+
+
+ 153              		.thumb_func
+ 155              	AppTxResult_SetRs485Usart6:
+ 156              	.LVL8:
+ 157              	.LFB242:
+  26:Core/Src/app_tx_result.c **** 
+  27:Core/Src/app_tx_result.c **** void AppTxResult_SetRs485Usart6(uint8_t enable)
+  28:Core/Src/app_tx_result.c **** {
+ 158              		.loc 1 28 1 is_stmt 1 view -0
+ 159              		.cfi_startproc
+ 160              		@ args = 0, pretend = 0, frame = 0
+ 161              		@ frame_needed = 0, uses_anonymous_args = 0
+ 162              		.loc 1 28 1 is_stmt 0 view .LVU27
+ 163 0000 08B5     		push	{r3, lr}
+ 164              	.LCFI4:
+ 165              		.cfi_def_cfa_offset 8
+ 166              		.cfi_offset 3, -8
+ 167              		.cfi_offset 14, -4
+  29:Core/Src/app_tx_result.c ****   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+ 168              		.loc 1 29 3 is_stmt 1 view .LVU28
+ 169 0002 021E     		subs	r2, r0, #0
+ 170 0004 18BF     		it	ne
+ 171 0006 0122     		movne	r2, #1
+ 172 0008 0221     		movs	r1, #2
+ 173 000a 0248     		ldr	r0, .L13
+ 174              	.LVL9:
+ 175              		.loc 1 29 3 is_stmt 0 view .LVU29
+ 176 000c FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 177              	.LVL10:
+  30:Core/Src/app_tx_result.c **** }
+ 178              		.loc 1 30 1 view .LVU30
+ 179 0010 08BD     		pop	{r3, pc}
+ 180              	.L14:
+ 181 0012 00BF     		.align	2
+ 182              	.L13:
+ 183 0014 00000240 		.word	1073872896
+ 184              		.cfi_endproc
+ 185              	.LFE242:
+ 187              		.section	.text.AppTxResult_UpdateEnableFromConfig,"ax",%progbits
+ 188              		.align	1
+ 189              		.global	AppTxResult_UpdateEnableFromConfig
+ 190              		.syntax unified
+ 191              		.thumb
+ 192              		.thumb_func
+ 194              	AppTxResult_UpdateEnableFromConfig:
+ 195              	.LVL11:
+ 196              	.LFB243:
+  31:Core/Src/app_tx_result.c **** 
+  32:Core/Src/app_tx_result.c **** void AppTxResult_UpdateEnableFromConfig(const protocol_values_t *values,
+  33:Core/Src/app_tx_result.c ****                                         volatile uint8_t *en_usart3,
+  34:Core/Src/app_tx_result.c ****                                         volatile uint8_t *en_uart6)
+  35:Core/Src/app_tx_result.c **** {
+ 197              		.loc 1 35 1 is_stmt 1 view -0
+ 198              		.cfi_startproc
+ 199              		@ args = 0, pretend = 0, frame = 0
+ 200              		@ frame_needed = 0, uses_anonymous_args = 0
+ 201              		@ link register save eliminated.
+  36:Core/Src/app_tx_result.c ****   if ((values == NULL) || (en_usart3 == NULL) || (en_uart6 == NULL))
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 5
+
+
+ 202              		.loc 1 36 3 view .LVU32
+ 203              		.loc 1 36 6 is_stmt 0 view .LVU33
+ 204 0000 0346     		mov	r3, r0
+ 205 0002 88B1     		cbz	r0, .L15
+ 206              		.loc 1 36 24 discriminator 1 view .LVU34
+ 207 0004 81B1     		cbz	r1, .L15
+ 208              		.loc 1 36 47 discriminator 2 view .LVU35
+ 209 0006 7AB1     		cbz	r2, .L15
+  37:Core/Src/app_tx_result.c ****   {
+  38:Core/Src/app_tx_result.c ****     return;
+  39:Core/Src/app_tx_result.c ****   }
+  40:Core/Src/app_tx_result.c ****   *en_usart3 = ((values->flag_uart_enable == 1U) || (values->flag_uart_enable == 3U)) ? 1U : 0U;
+ 210              		.loc 1 40 3 is_stmt 1 view .LVU36
+ 211              		.loc 1 40 24 is_stmt 0 view .LVU37
+ 212 0008 B0F86600 		ldrh	r0, [r0, #102]
+ 213              	.LVL12:
+ 214              		.loc 1 40 14 view .LVU38
+ 215 000c 0128     		cmp	r0, #1
+ 216 000e 0ED0     		beq	.L19
+ 217              		.loc 1 40 50 discriminator 2 view .LVU39
+ 218 0010 0328     		cmp	r0, #3
+ 219 0012 0AD0     		beq	.L22
+ 220              		.loc 1 40 14 discriminator 4 view .LVU40
+ 221 0014 0020     		movs	r0, #0
+ 222              	.L17:
+ 223              		.loc 1 40 14 discriminator 6 view .LVU41
+ 224 0016 0870     		strb	r0, [r1]
+  41:Core/Src/app_tx_result.c ****   *en_uart6 = ((values->flag_uart_enable == 2U) || (values->flag_uart_enable == 3U)) ? 1U : 0U;
+ 225              		.loc 1 41 3 is_stmt 1 view .LVU42
+ 226              		.loc 1 41 23 is_stmt 0 view .LVU43
+ 227 0018 B3F86630 		ldrh	r3, [r3, #102]
+ 228              	.LVL13:
+ 229              		.loc 1 41 49 view .LVU44
+ 230 001c 023B     		subs	r3, r3, #2
+ 231 001e 9BB2     		uxth	r3, r3
+ 232              		.loc 1 41 13 view .LVU45
+ 233 0020 012B     		cmp	r3, #1
+ 234 0022 06D9     		bls	.L23
+ 235              		.loc 1 41 13 discriminator 2 view .LVU46
+ 236 0024 0023     		movs	r3, #0
+ 237              	.L18:
+ 238              		.loc 1 41 13 discriminator 4 view .LVU47
+ 239 0026 1370     		strb	r3, [r2]
+ 240              	.L15:
+  42:Core/Src/app_tx_result.c **** }
+ 241              		.loc 1 42 1 view .LVU48
+ 242 0028 7047     		bx	lr
+ 243              	.LVL14:
+ 244              	.L22:
+  40:Core/Src/app_tx_result.c ****   *en_uart6 = ((values->flag_uart_enable == 2U) || (values->flag_uart_enable == 3U)) ? 1U : 0U;
+ 245              		.loc 1 40 14 discriminator 3 view .LVU49
+ 246 002a 0120     		movs	r0, #1
+ 247 002c F3E7     		b	.L17
+ 248              	.L19:
+ 249 002e 0120     		movs	r0, #1
+ 250 0030 F1E7     		b	.L17
+ 251              	.LVL15:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 6
+
+
+ 252              	.L23:
+  41:Core/Src/app_tx_result.c ****   *en_uart6 = ((values->flag_uart_enable == 2U) || (values->flag_uart_enable == 3U)) ? 1U : 0U;
+ 253              		.loc 1 41 13 discriminator 1 view .LVU50
+ 254 0032 0123     		movs	r3, #1
+ 255 0034 F7E7     		b	.L18
+ 256              		.cfi_endproc
+ 257              	.LFE243:
+ 259              		.section	.text.AppTxResult_BuildWriteFrame,"ax",%progbits
+ 260              		.align	1
+ 261              		.global	AppTxResult_BuildWriteFrame
+ 262              		.syntax unified
+ 263              		.thumb
+ 264              		.thumb_func
+ 266              	AppTxResult_BuildWriteFrame:
+ 267              	.LVL16:
+ 268              	.LFB244:
+  43:Core/Src/app_tx_result.c **** 
+  44:Core/Src/app_tx_result.c **** uint16_t AppTxResult_BuildWriteFrame(uint8_t slave_id, uint16_t start_addr, const result_1s_t *resu
+  45:Core/Src/app_tx_result.c **** {
+ 269              		.loc 1 45 1 is_stmt 1 view -0
+ 270              		.cfi_startproc
+ 271              		@ args = 4, pretend = 0, frame = 0
+ 272              		@ frame_needed = 0, uses_anonymous_args = 0
+  46:Core/Src/app_tx_result.c ****   uint16_t crc;
+ 273              		.loc 1 46 3 view .LVU52
+  47:Core/Src/app_tx_result.c **** 
+  48:Core/Src/app_tx_result.c ****   if ((result == NULL) || (out == NULL) || (out_size < 25U))
+ 274              		.loc 1 48 3 view .LVU53
+ 275              		.loc 1 48 6 is_stmt 0 view .LVU54
+ 276 0000 EAB3     		cbz	r2, .L26
+  45:Core/Src/app_tx_result.c ****   uint16_t crc;
+ 277              		.loc 1 45 1 view .LVU55
+ 278 0002 38B5     		push	{r3, r4, r5, lr}
+ 279              	.LCFI5:
+ 280              		.cfi_def_cfa_offset 16
+ 281              		.cfi_offset 3, -16
+ 282              		.cfi_offset 4, -12
+ 283              		.cfi_offset 5, -8
+ 284              		.cfi_offset 14, -4
+ 285 0004 1C46     		mov	r4, r3
+ 286 0006 1546     		mov	r5, r2
+ 287              		.loc 1 48 24 discriminator 1 view .LVU56
+ 288 0008 DBB3     		cbz	r3, .L27
+ 289              		.loc 1 48 41 discriminator 2 view .LVU57
+ 290 000a BDF81030 		ldrh	r3, [sp, #16]
+ 291              	.LVL17:
+ 292              		.loc 1 48 41 discriminator 2 view .LVU58
+ 293 000e 182B     		cmp	r3, #24
+ 294 0010 01D8     		bhi	.L33
+  49:Core/Src/app_tx_result.c ****   {
+  50:Core/Src/app_tx_result.c ****     return 0U;
+ 295              		.loc 1 50 12 view .LVU59
+ 296 0012 0020     		movs	r0, #0
+ 297              	.LVL18:
+ 298              	.L25:
+  51:Core/Src/app_tx_result.c ****   }
+  52:Core/Src/app_tx_result.c **** 
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 7
+
+
+  53:Core/Src/app_tx_result.c ****   out[0] = slave_id;
+  54:Core/Src/app_tx_result.c ****   out[1] = 0x10U;
+  55:Core/Src/app_tx_result.c ****   out[2] = (uint8_t)(start_addr >> 8);
+  56:Core/Src/app_tx_result.c ****   out[3] = (uint8_t)(start_addr & 0xFFU);
+  57:Core/Src/app_tx_result.c ****   out[4] = 0x00U;
+  58:Core/Src/app_tx_result.c ****   out[5] = TX_RESULT_REG_COUNT;
+  59:Core/Src/app_tx_result.c ****   out[6] = 16U;
+  60:Core/Src/app_tx_result.c **** 
+  61:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->torque, &out[7], &out[9]);
+  62:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->power, &out[11], &out[13]);
+  63:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->rpm, &out[15], &out[17]);
+  64:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->thrust, &out[19], &out[21]);
+  65:Core/Src/app_tx_result.c **** 
+  66:Core/Src/app_tx_result.c ****   crc = ModbusMaster_Crc16(out, 23U);
+  67:Core/Src/app_tx_result.c ****   out[23] = (uint8_t)(crc & 0xFFU);
+  68:Core/Src/app_tx_result.c ****   out[24] = (uint8_t)(crc >> 8);
+  69:Core/Src/app_tx_result.c **** 
+  70:Core/Src/app_tx_result.c ****   return 25U;
+  71:Core/Src/app_tx_result.c **** }
+ 299              		.loc 1 71 1 view .LVU60
+ 300 0014 38BD     		pop	{r3, r4, r5, pc}
+ 301              	.LVL19:
+ 302              	.L33:
+  53:Core/Src/app_tx_result.c ****   out[1] = 0x10U;
+ 303              		.loc 1 53 3 is_stmt 1 view .LVU61
+  53:Core/Src/app_tx_result.c ****   out[1] = 0x10U;
+ 304              		.loc 1 53 10 is_stmt 0 view .LVU62
+ 305 0016 2070     		strb	r0, [r4]
+  54:Core/Src/app_tx_result.c ****   out[2] = (uint8_t)(start_addr >> 8);
+ 306              		.loc 1 54 3 is_stmt 1 view .LVU63
+  54:Core/Src/app_tx_result.c ****   out[2] = (uint8_t)(start_addr >> 8);
+ 307              		.loc 1 54 10 is_stmt 0 view .LVU64
+ 308 0018 1023     		movs	r3, #16
+ 309 001a 6370     		strb	r3, [r4, #1]
+  55:Core/Src/app_tx_result.c ****   out[3] = (uint8_t)(start_addr & 0xFFU);
+ 310              		.loc 1 55 3 is_stmt 1 view .LVU65
+  55:Core/Src/app_tx_result.c ****   out[3] = (uint8_t)(start_addr & 0xFFU);
+ 311              		.loc 1 55 12 is_stmt 0 view .LVU66
+ 312 001c 0A0A     		lsrs	r2, r1, #8
+ 313              	.LVL20:
+  55:Core/Src/app_tx_result.c ****   out[3] = (uint8_t)(start_addr & 0xFFU);
+ 314              		.loc 1 55 10 view .LVU67
+ 315 001e A270     		strb	r2, [r4, #2]
+  56:Core/Src/app_tx_result.c ****   out[4] = 0x00U;
+ 316              		.loc 1 56 3 is_stmt 1 view .LVU68
+  56:Core/Src/app_tx_result.c ****   out[4] = 0x00U;
+ 317              		.loc 1 56 10 is_stmt 0 view .LVU69
+ 318 0020 E170     		strb	r1, [r4, #3]
+  57:Core/Src/app_tx_result.c ****   out[5] = TX_RESULT_REG_COUNT;
+ 319              		.loc 1 57 3 is_stmt 1 view .LVU70
+  57:Core/Src/app_tx_result.c ****   out[5] = TX_RESULT_REG_COUNT;
+ 320              		.loc 1 57 10 is_stmt 0 view .LVU71
+ 321 0022 0022     		movs	r2, #0
+ 322 0024 2271     		strb	r2, [r4, #4]
+  58:Core/Src/app_tx_result.c ****   out[6] = 16U;
+ 323              		.loc 1 58 3 is_stmt 1 view .LVU72
+  58:Core/Src/app_tx_result.c ****   out[6] = 16U;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 8
+
+
+ 324              		.loc 1 58 10 is_stmt 0 view .LVU73
+ 325 0026 0822     		movs	r2, #8
+ 326 0028 6271     		strb	r2, [r4, #5]
+  59:Core/Src/app_tx_result.c **** 
+ 327              		.loc 1 59 3 is_stmt 1 view .LVU74
+  59:Core/Src/app_tx_result.c **** 
+ 328              		.loc 1 59 10 is_stmt 0 view .LVU75
+ 329 002a A371     		strb	r3, [r4, #6]
+  61:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->power, &out[11], &out[13]);
+ 330              		.loc 1 61 3 is_stmt 1 view .LVU76
+ 331 002c 04F10901 		add	r1, r4, #9
+ 332              	.LVL21:
+  61:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->power, &out[11], &out[13]);
+ 333              		.loc 1 61 3 is_stmt 0 view .LVU77
+ 334 0030 E01D     		adds	r0, r4, #7
+ 335              	.LVL22:
+  61:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->power, &out[11], &out[13]);
+ 336              		.loc 1 61 3 view .LVU78
+ 337 0032 95ED010A 		vldr.32	s0, [r5, #4]
+ 338 0036 FFF7FEFF 		bl	AppTxResult_FloatToRegs
+ 339              	.LVL23:
+  62:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->rpm, &out[15], &out[17]);
+ 340              		.loc 1 62 3 is_stmt 1 view .LVU79
+ 341 003a 04F10D01 		add	r1, r4, #13
+ 342 003e 04F10B00 		add	r0, r4, #11
+ 343 0042 95ED040A 		vldr.32	s0, [r5, #16]
+ 344 0046 FFF7FEFF 		bl	AppTxResult_FloatToRegs
+ 345              	.LVL24:
+  63:Core/Src/app_tx_result.c ****   AppTxResult_FloatToRegs(result->thrust, &out[19], &out[21]);
+ 346              		.loc 1 63 3 view .LVU80
+ 347 004a 04F11101 		add	r1, r4, #17
+ 348 004e 04F10F00 		add	r0, r4, #15
+ 349 0052 95ED030A 		vldr.32	s0, [r5, #12]
+ 350 0056 FFF7FEFF 		bl	AppTxResult_FloatToRegs
+ 351              	.LVL25:
+  64:Core/Src/app_tx_result.c **** 
+ 352              		.loc 1 64 3 view .LVU81
+ 353 005a 04F11501 		add	r1, r4, #21
+ 354 005e 04F11300 		add	r0, r4, #19
+ 355 0062 95ED020A 		vldr.32	s0, [r5, #8]
+ 356 0066 FFF7FEFF 		bl	AppTxResult_FloatToRegs
+ 357              	.LVL26:
+  66:Core/Src/app_tx_result.c ****   out[23] = (uint8_t)(crc & 0xFFU);
+ 358              		.loc 1 66 3 view .LVU82
+  66:Core/Src/app_tx_result.c ****   out[23] = (uint8_t)(crc & 0xFFU);
+ 359              		.loc 1 66 9 is_stmt 0 view .LVU83
+ 360 006a 1721     		movs	r1, #23
+ 361 006c 2046     		mov	r0, r4
+ 362 006e FFF7FEFF 		bl	ModbusMaster_Crc16
+ 363              	.LVL27:
+  67:Core/Src/app_tx_result.c ****   out[24] = (uint8_t)(crc >> 8);
+ 364              		.loc 1 67 3 is_stmt 1 view .LVU84
+  67:Core/Src/app_tx_result.c ****   out[24] = (uint8_t)(crc >> 8);
+ 365              		.loc 1 67 11 is_stmt 0 view .LVU85
+ 366 0072 E075     		strb	r0, [r4, #23]
+  68:Core/Src/app_tx_result.c **** 
+ 367              		.loc 1 68 3 is_stmt 1 view .LVU86
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 9
+
+
+  68:Core/Src/app_tx_result.c **** 
+ 368              		.loc 1 68 13 is_stmt 0 view .LVU87
+ 369 0074 C0F30720 		ubfx	r0, r0, #8, #8
+ 370              	.LVL28:
+  68:Core/Src/app_tx_result.c **** 
+ 371              		.loc 1 68 11 view .LVU88
+ 372 0078 2076     		strb	r0, [r4, #24]
+  70:Core/Src/app_tx_result.c **** }
+ 373              		.loc 1 70 3 is_stmt 1 view .LVU89
+  70:Core/Src/app_tx_result.c **** }
+ 374              		.loc 1 70 10 is_stmt 0 view .LVU90
+ 375 007a 1920     		movs	r0, #25
+ 376 007c CAE7     		b	.L25
+ 377              	.LVL29:
+ 378              	.L26:
+ 379              	.LCFI6:
+ 380              		.cfi_def_cfa_offset 0
+ 381              		.cfi_restore 3
+ 382              		.cfi_restore 4
+ 383              		.cfi_restore 5
+ 384              		.cfi_restore 14
+  50:Core/Src/app_tx_result.c ****   }
+ 385              		.loc 1 50 12 view .LVU91
+ 386 007e 0020     		movs	r0, #0
+ 387              	.LVL30:
+ 388              		.loc 1 71 1 view .LVU92
+ 389 0080 7047     		bx	lr
+ 390              	.LVL31:
+ 391              	.L27:
+ 392              	.LCFI7:
+ 393              		.cfi_def_cfa_offset 16
+ 394              		.cfi_offset 3, -16
+ 395              		.cfi_offset 4, -12
+ 396              		.cfi_offset 5, -8
+ 397              		.cfi_offset 14, -4
+  50:Core/Src/app_tx_result.c ****   }
+ 398              		.loc 1 50 12 view .LVU93
+ 399 0082 0020     		movs	r0, #0
+ 400              	.LVL32:
+  50:Core/Src/app_tx_result.c ****   }
+ 401              		.loc 1 50 12 view .LVU94
+ 402 0084 C6E7     		b	.L25
+ 403              		.cfi_endproc
+ 404              	.LFE244:
+ 406              		.section	.text.AppTxResult_SendUsart3,"ax",%progbits
+ 407              		.align	1
+ 408              		.global	AppTxResult_SendUsart3
+ 409              		.syntax unified
+ 410              		.thumb
+ 411              		.thumb_func
+ 413              	AppTxResult_SendUsart3:
+ 414              	.LVL33:
+ 415              	.LFB245:
+  72:Core/Src/app_tx_result.c **** 
+  73:Core/Src/app_tx_result.c **** HAL_StatusTypeDef AppTxResult_SendUsart3(const app_tx_result_ctx_t *ctx, const uint8_t *frame, uint
+  74:Core/Src/app_tx_result.c **** {
+ 416              		.loc 1 74 1 is_stmt 1 view -0
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 10
+
+
+ 417              		.cfi_startproc
+ 418              		@ args = 0, pretend = 0, frame = 0
+ 419              		@ frame_needed = 0, uses_anonymous_args = 0
+ 420              		.loc 1 74 1 is_stmt 0 view .LVU96
+ 421 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+ 422              	.LCFI8:
+ 423              		.cfi_def_cfa_offset 32
+ 424              		.cfi_offset 3, -32
+ 425              		.cfi_offset 4, -28
+ 426              		.cfi_offset 5, -24
+ 427              		.cfi_offset 6, -20
+ 428              		.cfi_offset 7, -16
+ 429              		.cfi_offset 8, -12
+ 430              		.cfi_offset 9, -8
+ 431              		.cfi_offset 14, -4
+  75:Core/Src/app_tx_result.c ****   uint32_t start_tick;
+ 432              		.loc 1 75 3 is_stmt 1 view .LVU97
+  76:Core/Src/app_tx_result.c **** 
+  77:Core/Src/app_tx_result.c ****   if ((ctx == NULL) || (ctx->huart3 == NULL) || (ctx->usart3_tx_done == NULL))
+ 433              		.loc 1 77 3 view .LVU98
+ 434              		.loc 1 77 6 is_stmt 0 view .LVU99
+ 435 0004 0028     		cmp	r0, #0
+ 436 0006 43D0     		beq	.L42
+ 437 0008 8846     		mov	r8, r1
+ 438 000a 9146     		mov	r9, r2
+ 439 000c 1E46     		mov	r6, r3
+ 440 000e 0546     		mov	r5, r0
+ 441              		.loc 1 77 28 discriminator 1 view .LVU100
+ 442 0010 0368     		ldr	r3, [r0]
+ 443              	.LVL34:
+ 444              		.loc 1 77 21 discriminator 1 view .LVU101
+ 445 0012 002B     		cmp	r3, #0
+ 446 0014 3ED0     		beq	.L43
+ 447              		.loc 1 77 53 discriminator 2 view .LVU102
+ 448 0016 8368     		ldr	r3, [r0, #8]
+ 449              		.loc 1 77 46 discriminator 2 view .LVU103
+ 450 0018 002B     		cmp	r3, #0
+ 451 001a 3DD0     		beq	.L44
+  78:Core/Src/app_tx_result.c ****   {
+  79:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+  80:Core/Src/app_tx_result.c ****   }
+  81:Core/Src/app_tx_result.c **** 
+  82:Core/Src/app_tx_result.c ****   start_tick = HAL_GetTick();
+ 452              		.loc 1 82 3 is_stmt 1 view .LVU104
+ 453              		.loc 1 82 16 is_stmt 0 view .LVU105
+ 454 001c FFF7FEFF 		bl	HAL_GetTick
+ 455              	.LVL35:
+ 456              		.loc 1 82 16 view .LVU106
+ 457 0020 0746     		mov	r7, r0
+ 458              	.LVL36:
+  83:Core/Src/app_tx_result.c ****   while (*(ctx->usart3_tx_done) == 0U)
+ 459              		.loc 1 83 3 is_stmt 1 view .LVU107
+ 460              	.L36:
+ 461              		.loc 1 83 33 view .LVU108
+ 462              		.loc 1 83 15 is_stmt 0 view .LVU109
+ 463 0022 AC68     		ldr	r4, [r5, #8]
+ 464              		.loc 1 83 10 view .LVU110
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 11
+
+
+ 465 0024 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 466              		.loc 1 83 33 view .LVU111
+ 467 0026 43B9     		cbnz	r3, .L47
+  84:Core/Src/app_tx_result.c ****   {
+  85:Core/Src/app_tx_result.c ****     if ((HAL_GetTick() - start_tick) > timeout_ms)
+ 468              		.loc 1 85 5 is_stmt 1 view .LVU112
+ 469              		.loc 1 85 10 is_stmt 0 view .LVU113
+ 470 0028 FFF7FEFF 		bl	HAL_GetTick
+ 471              	.LVL37:
+ 472              		.loc 1 85 24 discriminator 1 view .LVU114
+ 473 002c C01B     		subs	r0, r0, r7
+ 474              		.loc 1 85 8 discriminator 1 view .LVU115
+ 475 002e B042     		cmp	r0, r6
+ 476 0030 34D8     		bhi	.L45
+  86:Core/Src/app_tx_result.c ****     {
+  87:Core/Src/app_tx_result.c ****       return HAL_TIMEOUT;
+  88:Core/Src/app_tx_result.c ****     }
+  89:Core/Src/app_tx_result.c ****     osDelay(1);
+ 477              		.loc 1 89 5 is_stmt 1 view .LVU116
+ 478 0032 0120     		movs	r0, #1
+ 479 0034 FFF7FEFF 		bl	osDelay
+ 480              	.LVL38:
+ 481 0038 F3E7     		b	.L36
+ 482              	.L47:
+  90:Core/Src/app_tx_result.c ****   }
+  91:Core/Src/app_tx_result.c **** 
+  92:Core/Src/app_tx_result.c ****   *(ctx->usart3_tx_done) = 0U;
+ 483              		.loc 1 92 3 view .LVU117
+ 484              		.loc 1 92 26 is_stmt 0 view .LVU118
+ 485 003a 0023     		movs	r3, #0
+ 486 003c 2370     		strb	r3, [r4]
+  93:Core/Src/app_tx_result.c ****   AppTxResult_SetRs485Usart3(1U);
+ 487              		.loc 1 93 3 is_stmt 1 view .LVU119
+ 488 003e 0120     		movs	r0, #1
+ 489 0040 FFF7FEFF 		bl	AppTxResult_SetRs485Usart3
+ 490              	.LVL39:
+  94:Core/Src/app_tx_result.c ****   if (HAL_UART_Transmit_DMA(ctx->huart3, (uint8_t *)frame, len) != HAL_OK)
+ 491              		.loc 1 94 3 view .LVU120
+ 492              		.loc 1 94 7 is_stmt 0 view .LVU121
+ 493 0044 4A46     		mov	r2, r9
+ 494 0046 4146     		mov	r1, r8
+ 495 0048 2868     		ldr	r0, [r5]
+ 496 004a FFF7FEFF 		bl	HAL_UART_Transmit_DMA
+ 497              	.LVL40:
+ 498              		.loc 1 94 6 discriminator 1 view .LVU122
+ 499 004e 0446     		mov	r4, r0
+ 500 0050 18B9     		cbnz	r0, .L48
+  95:Core/Src/app_tx_result.c ****   {
+  96:Core/Src/app_tx_result.c ****     AppTxResult_SetRs485Usart3(0U);
+  97:Core/Src/app_tx_result.c ****     *(ctx->usart3_tx_done) = 1U;
+  98:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+  99:Core/Src/app_tx_result.c ****   }
+ 100:Core/Src/app_tx_result.c **** 
+ 101:Core/Src/app_tx_result.c ****   start_tick = HAL_GetTick();
+ 501              		.loc 1 101 3 is_stmt 1 view .LVU123
+ 502              		.loc 1 101 16 is_stmt 0 view .LVU124
+ 503 0052 FFF7FEFF 		bl	HAL_GetTick
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 12
+
+
+ 504              	.LVL41:
+ 505 0056 0746     		mov	r7, r0
+ 506              	.LVL42:
+ 102:Core/Src/app_tx_result.c ****   while (*(ctx->usart3_tx_done) == 0U)
+ 507              		.loc 1 102 3 is_stmt 1 view .LVU125
+ 508              		.loc 1 102 9 is_stmt 0 view .LVU126
+ 509 0058 09E0     		b	.L39
+ 510              	.LVL43:
+ 511              	.L48:
+  96:Core/Src/app_tx_result.c ****     *(ctx->usart3_tx_done) = 1U;
+ 512              		.loc 1 96 5 is_stmt 1 view .LVU127
+ 513 005a 0020     		movs	r0, #0
+ 514 005c FFF7FEFF 		bl	AppTxResult_SetRs485Usart3
+ 515              	.LVL44:
+  97:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+ 516              		.loc 1 97 5 view .LVU128
+  97:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+ 517              		.loc 1 97 10 is_stmt 0 view .LVU129
+ 518 0060 AB68     		ldr	r3, [r5, #8]
+  97:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+ 519              		.loc 1 97 28 view .LVU130
+ 520 0062 0124     		movs	r4, #1
+ 521 0064 1C70     		strb	r4, [r3]
+  98:Core/Src/app_tx_result.c ****   }
+ 522              		.loc 1 98 5 is_stmt 1 view .LVU131
+  98:Core/Src/app_tx_result.c ****   }
+ 523              		.loc 1 98 12 is_stmt 0 view .LVU132
+ 524 0066 1AE0     		b	.L35
+ 525              	.L40:
+ 103:Core/Src/app_tx_result.c ****   {
+ 104:Core/Src/app_tx_result.c ****     if ((HAL_GetTick() - start_tick) > timeout_ms)
+ 105:Core/Src/app_tx_result.c ****     {
+ 106:Core/Src/app_tx_result.c ****       AppTxResult_SetRs485Usart3(0U);
+ 107:Core/Src/app_tx_result.c ****       return HAL_TIMEOUT;
+ 108:Core/Src/app_tx_result.c ****     }
+ 109:Core/Src/app_tx_result.c ****     osDelay(1);
+ 526              		.loc 1 109 5 is_stmt 1 view .LVU133
+ 527 0068 0120     		movs	r0, #1
+ 528 006a FFF7FEFF 		bl	osDelay
+ 529              	.LVL45:
+ 530              	.L39:
+ 102:Core/Src/app_tx_result.c ****   {
+ 531              		.loc 1 102 33 view .LVU134
+ 102:Core/Src/app_tx_result.c ****   {
+ 532              		.loc 1 102 15 is_stmt 0 view .LVU135
+ 533 006e AB68     		ldr	r3, [r5, #8]
+ 102:Core/Src/app_tx_result.c ****   {
+ 534              		.loc 1 102 10 view .LVU136
+ 535 0070 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 102:Core/Src/app_tx_result.c ****   {
+ 536              		.loc 1 102 33 view .LVU137
+ 537 0072 4BB9     		cbnz	r3, .L49
+ 104:Core/Src/app_tx_result.c ****     {
+ 538              		.loc 1 104 5 is_stmt 1 view .LVU138
+ 104:Core/Src/app_tx_result.c ****     {
+ 539              		.loc 1 104 10 is_stmt 0 view .LVU139
+ 540 0074 FFF7FEFF 		bl	HAL_GetTick
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 13
+
+
+ 541              	.LVL46:
+ 104:Core/Src/app_tx_result.c ****     {
+ 542              		.loc 1 104 24 discriminator 1 view .LVU140
+ 543 0078 C01B     		subs	r0, r0, r7
+ 104:Core/Src/app_tx_result.c ****     {
+ 544              		.loc 1 104 8 discriminator 1 view .LVU141
+ 545 007a B042     		cmp	r0, r6
+ 546 007c F4D9     		bls	.L40
+ 106:Core/Src/app_tx_result.c ****       return HAL_TIMEOUT;
+ 547              		.loc 1 106 7 is_stmt 1 view .LVU142
+ 548 007e 0020     		movs	r0, #0
+ 549 0080 FFF7FEFF 		bl	AppTxResult_SetRs485Usart3
+ 550              	.LVL47:
+ 107:Core/Src/app_tx_result.c ****     }
+ 551              		.loc 1 107 7 view .LVU143
+ 107:Core/Src/app_tx_result.c ****     }
+ 552              		.loc 1 107 14 is_stmt 0 view .LVU144
+ 553 0084 0324     		movs	r4, #3
+ 554 0086 0AE0     		b	.L35
+ 555              	.L49:
+ 110:Core/Src/app_tx_result.c ****   }
+ 111:Core/Src/app_tx_result.c **** 
+ 112:Core/Src/app_tx_result.c ****   AppTxResult_SetRs485Usart3(0U);
+ 556              		.loc 1 112 3 is_stmt 1 view .LVU145
+ 557 0088 0020     		movs	r0, #0
+ 558 008a FFF7FEFF 		bl	AppTxResult_SetRs485Usart3
+ 559              	.LVL48:
+ 113:Core/Src/app_tx_result.c ****   return HAL_OK;
+ 560              		.loc 1 113 3 view .LVU146
+ 561              		.loc 1 113 10 is_stmt 0 view .LVU147
+ 562 008e 06E0     		b	.L35
+ 563              	.LVL49:
+ 564              	.L42:
+  79:Core/Src/app_tx_result.c ****   }
+ 565              		.loc 1 79 12 view .LVU148
+ 566 0090 0124     		movs	r4, #1
+ 567 0092 04E0     		b	.L35
+ 568              	.LVL50:
+ 569              	.L43:
+  79:Core/Src/app_tx_result.c ****   }
+ 570              		.loc 1 79 12 view .LVU149
+ 571 0094 0124     		movs	r4, #1
+ 572 0096 02E0     		b	.L35
+ 573              	.L44:
+ 574 0098 0124     		movs	r4, #1
+ 575 009a 00E0     		b	.L35
+ 576              	.LVL51:
+ 577              	.L45:
+  87:Core/Src/app_tx_result.c ****     }
+ 578              		.loc 1 87 14 view .LVU150
+ 579 009c 0324     		movs	r4, #3
+ 580              	.LVL52:
+ 581              	.L35:
+ 114:Core/Src/app_tx_result.c **** }
+ 582              		.loc 1 114 1 view .LVU151
+ 583 009e 2046     		mov	r0, r4
+ 584 00a0 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 14
+
+
+ 585              		.cfi_endproc
+ 586              	.LFE245:
+ 588              		.section	.text.AppTxResult_SendUsart6,"ax",%progbits
+ 589              		.align	1
+ 590              		.global	AppTxResult_SendUsart6
+ 591              		.syntax unified
+ 592              		.thumb
+ 593              		.thumb_func
+ 595              	AppTxResult_SendUsart6:
+ 596              	.LVL53:
+ 597              	.LFB246:
+ 115:Core/Src/app_tx_result.c **** 
+ 116:Core/Src/app_tx_result.c **** HAL_StatusTypeDef AppTxResult_SendUsart6(const app_tx_result_ctx_t *ctx, const uint8_t *frame, uint
+ 117:Core/Src/app_tx_result.c **** {
+ 598              		.loc 1 117 1 is_stmt 1 view -0
+ 599              		.cfi_startproc
+ 600              		@ args = 0, pretend = 0, frame = 0
+ 601              		@ frame_needed = 0, uses_anonymous_args = 0
+ 602              		.loc 1 117 1 is_stmt 0 view .LVU153
+ 603 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 604              	.LCFI9:
+ 605              		.cfi_def_cfa_offset 24
+ 606              		.cfi_offset 3, -24
+ 607              		.cfi_offset 4, -20
+ 608              		.cfi_offset 5, -16
+ 609              		.cfi_offset 6, -12
+ 610              		.cfi_offset 7, -8
+ 611              		.cfi_offset 14, -4
+ 118:Core/Src/app_tx_result.c ****   HAL_StatusTypeDef ret;
+ 612              		.loc 1 118 3 is_stmt 1 view .LVU154
+ 119:Core/Src/app_tx_result.c **** 
+ 120:Core/Src/app_tx_result.c ****   if ((ctx == NULL) || (ctx->huart6 == NULL))
+ 613              		.loc 1 120 3 view .LVU155
+ 614              		.loc 1 120 6 is_stmt 0 view .LVU156
+ 615 0002 A0B1     		cbz	r0, .L52
+ 616 0004 0C46     		mov	r4, r1
+ 617 0006 1546     		mov	r5, r2
+ 618 0008 1E46     		mov	r6, r3
+ 619 000a 0746     		mov	r7, r0
+ 620              		.loc 1 120 28 discriminator 1 view .LVU157
+ 621 000c 4368     		ldr	r3, [r0, #4]
+ 622              	.LVL54:
+ 623              		.loc 1 120 21 discriminator 1 view .LVU158
+ 624 000e 83B1     		cbz	r3, .L53
+ 121:Core/Src/app_tx_result.c ****   {
+ 122:Core/Src/app_tx_result.c ****     return HAL_ERROR;
+ 123:Core/Src/app_tx_result.c ****   }
+ 124:Core/Src/app_tx_result.c **** 
+ 125:Core/Src/app_tx_result.c ****   AppTxResult_SetRs485Usart6(1U);
+ 625              		.loc 1 125 3 is_stmt 1 view .LVU159
+ 626 0010 0120     		movs	r0, #1
+ 627              	.LVL55:
+ 628              		.loc 1 125 3 is_stmt 0 view .LVU160
+ 629 0012 FFF7FEFF 		bl	AppTxResult_SetRs485Usart6
+ 630              	.LVL56:
+ 126:Core/Src/app_tx_result.c ****   ret = HAL_UART_Transmit(ctx->huart6, (uint8_t *)frame, len, timeout_ms);
+ 631              		.loc 1 126 3 is_stmt 1 view .LVU161
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 15
+
+
+ 632              		.loc 1 126 9 is_stmt 0 view .LVU162
+ 633 0016 3346     		mov	r3, r6
+ 634 0018 2A46     		mov	r2, r5
+ 635 001a 2146     		mov	r1, r4
+ 636 001c 7868     		ldr	r0, [r7, #4]
+ 637 001e FFF7FEFF 		bl	HAL_UART_Transmit
+ 638              	.LVL57:
+ 639 0022 0446     		mov	r4, r0
+ 640              	.LVL58:
+ 127:Core/Src/app_tx_result.c ****   AppTxResult_SetRs485Usart6(0U);
+ 641              		.loc 1 127 3 is_stmt 1 view .LVU163
+ 642 0024 0020     		movs	r0, #0
+ 643 0026 FFF7FEFF 		bl	AppTxResult_SetRs485Usart6
+ 644              	.LVL59:
+ 128:Core/Src/app_tx_result.c ****   return ret;
+ 645              		.loc 1 128 3 view .LVU164
+ 646              	.L51:
+ 129:Core/Src/app_tx_result.c **** }
+ 647              		.loc 1 129 1 is_stmt 0 view .LVU165
+ 648 002a 2046     		mov	r0, r4
+ 649 002c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 650              	.LVL60:
+ 651              	.L52:
+ 122:Core/Src/app_tx_result.c ****   }
+ 652              		.loc 1 122 12 view .LVU166
+ 653 002e 0124     		movs	r4, #1
+ 654 0030 FBE7     		b	.L51
+ 655              	.LVL61:
+ 656              	.L53:
+ 122:Core/Src/app_tx_result.c ****   }
+ 657              		.loc 1 122 12 view .LVU167
+ 658 0032 0124     		movs	r4, #1
+ 659 0034 F9E7     		b	.L51
+ 660              		.cfi_endproc
+ 661              	.LFE246:
+ 663              		.text
+ 664              	.Letext0:
+ 665              		.file 2 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 666              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 667              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f407xx.h"
+ 668              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 669              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ 670              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 671              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h"
+ 672              		.file 9 "Core/Inc/main.h"
+ 673              		.file 10 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 674              		.file 11 "Core/Inc/protocol_values.h"
+ 675              		.file 12 "Core/Inc/app_tx_result.h"
+ 676              		.file 13 "Core/Inc/modbus_master.h"
+ 677              		.file 14 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s 			page 16
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 app_tx_result.c
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:21     .text.AppTxResult_FloatToRegs:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:26     .text.AppTxResult_FloatToRegs:00000000 AppTxResult_FloatToRegs
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:71     .text.AppTxResult_SetRs485Usart2:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:77     .text.AppTxResult_SetRs485Usart2:00000000 AppTxResult_SetRs485Usart2
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:105    .text.AppTxResult_SetRs485Usart2:00000014 $d
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:110    .text.AppTxResult_SetRs485Usart3:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:116    .text.AppTxResult_SetRs485Usart3:00000000 AppTxResult_SetRs485Usart3
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:144    .text.AppTxResult_SetRs485Usart3:00000014 $d
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:149    .text.AppTxResult_SetRs485Usart6:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:155    .text.AppTxResult_SetRs485Usart6:00000000 AppTxResult_SetRs485Usart6
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:183    .text.AppTxResult_SetRs485Usart6:00000014 $d
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:188    .text.AppTxResult_UpdateEnableFromConfig:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:194    .text.AppTxResult_UpdateEnableFromConfig:00000000 AppTxResult_UpdateEnableFromConfig
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:260    .text.AppTxResult_BuildWriteFrame:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:266    .text.AppTxResult_BuildWriteFrame:00000000 AppTxResult_BuildWriteFrame
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:407    .text.AppTxResult_SendUsart3:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:413    .text.AppTxResult_SendUsart3:00000000 AppTxResult_SendUsart3
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:589    .text.AppTxResult_SendUsart6:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccR2FRjV.s:595    .text.AppTxResult_SendUsart6:00000000 AppTxResult_SendUsart6
+
+UNDEFINED SYMBOLS
+HAL_GPIO_WritePin
+ModbusMaster_Crc16
+HAL_GetTick
+osDelay
+HAL_UART_Transmit_DMA
+HAL_UART_Transmit

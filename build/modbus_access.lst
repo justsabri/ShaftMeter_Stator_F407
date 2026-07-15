@@ -1,0 +1,1412 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"modbus_access.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/modbus_access.c"
+  20              		.section	.text.ModbusReadRegs,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	ModbusReadRegs:
+  27              	.LVL0:
+  28              	.LFB134:
+   1:Core/Src/modbus_access.c **** #include "modbus_access.h"
+   2:Core/Src/modbus_access.c **** 
+   3:Core/Src/modbus_access.c **** #define MODBUS_CACHE_BASE_ADDR 0x0700U
+   4:Core/Src/modbus_access.c **** #define MODBUS_CACHE_SIZE      256U
+   5:Core/Src/modbus_access.c **** 
+   6:Core/Src/modbus_access.c **** static uint8_t ModbusReadRegs(const modbus_cache_t *cache, uint16_t addr, uint16_t words, uint16_t 
+   7:Core/Src/modbus_access.c **** {
+  29              		.loc 1 7 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+   8:Core/Src/modbus_access.c ****   uint16_t idx;
+  33              		.loc 1 8 3 view .LVU1
+   9:Core/Src/modbus_access.c ****   uint16_t i;
+  34              		.loc 1 9 3 view .LVU2
+  10:Core/Src/modbus_access.c **** 
+  11:Core/Src/modbus_access.c ****   if ((cache == 0) || (out == 0) || (words == 0U))
+  35              		.loc 1 11 3 view .LVU3
+  36              		.loc 1 11 6 is_stmt 0 view .LVU4
+  37 0000 F0B1     		cbz	r0, .L5
+   7:Core/Src/modbus_access.c ****   uint16_t idx;
+  38              		.loc 1 7 1 view .LVU5
+  39 0002 00B5     		push	{lr}
+  40              	.LCFI0:
+  41              		.cfi_def_cfa_offset 4
+  42              		.cfi_offset 14, -4
+  43 0004 8646     		mov	lr, r0
+  44              		.loc 1 11 20 discriminator 1 view .LVU6
+  45 0006 EBB1     		cbz	r3, .L6
+  46              		.loc 1 11 34 discriminator 2 view .LVU7
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 2
+
+
+  47 0008 F2B1     		cbz	r2, .L7
+  12:Core/Src/modbus_access.c ****   {
+  13:Core/Src/modbus_access.c ****     return 0U;
+  14:Core/Src/modbus_access.c ****   }
+  15:Core/Src/modbus_access.c ****   if (addr < MODBUS_CACHE_BASE_ADDR)
+  48              		.loc 1 15 3 is_stmt 1 view .LVU8
+  49              		.loc 1 15 6 is_stmt 0 view .LVU9
+  50 000a B1F5E06F 		cmp	r1, #1792
+  51 000e 1ED3     		bcc	.L8
+  16:Core/Src/modbus_access.c ****   {
+  17:Core/Src/modbus_access.c ****     return 0U;
+  18:Core/Src/modbus_access.c ****   }
+  19:Core/Src/modbus_access.c ****   idx = (uint16_t)(addr - MODBUS_CACHE_BASE_ADDR);
+  52              		.loc 1 19 3 is_stmt 1 view .LVU10
+  53              		.loc 1 19 7 is_stmt 0 view .LVU11
+  54 0010 A1F5E061 		sub	r1, r1, #1792
+  55              	.LVL1:
+  56              		.loc 1 19 7 view .LVU12
+  57 0014 88B2     		uxth	r0, r1
+  58              	.LVL2:
+  20:Core/Src/modbus_access.c ****   if ((uint16_t)(idx + words) > MODBUS_CACHE_SIZE)
+  59              		.loc 1 20 3 is_stmt 1 view .LVU13
+  60              		.loc 1 20 7 is_stmt 0 view .LVU14
+  61 0016 1118     		adds	r1, r2, r0
+  62              	.LVL3:
+  63              		.loc 1 20 7 view .LVU15
+  64 0018 89B2     		uxth	r1, r1
+  65              		.loc 1 20 6 view .LVU16
+  66 001a B1F5807F 		cmp	r1, #256
+  67 001e 18D8     		bhi	.L9
+  21:Core/Src/modbus_access.c ****   {
+  22:Core/Src/modbus_access.c ****     return 0U;
+  23:Core/Src/modbus_access.c ****   }
+  24:Core/Src/modbus_access.c **** 
+  25:Core/Src/modbus_access.c ****   for (i = 0U; i < words; i++)
+  68              		.loc 1 25 10 view .LVU17
+  69 0020 0021     		movs	r1, #0
+  70 0022 09E0     		b	.L3
+  71              	.LVL4:
+  72              	.L4:
+  26:Core/Src/modbus_access.c ****   {
+  27:Core/Src/modbus_access.c ****     out[i] = cache->params_07xx[idx + i];
+  73              		.loc 1 27 5 is_stmt 1 view .LVU18
+  74              		.loc 1 27 37 is_stmt 0 view .LVU19
+  75 0024 00EB010C 		add	ip, r0, r1
+  76              		.loc 1 27 32 view .LVU20
+  77 0028 0CF1040C 		add	ip, ip, #4
+  78 002c 3EF81CC0 		ldrh	ip, [lr, ip, lsl #1]
+  79              		.loc 1 27 12 view .LVU21
+  80 0030 23F811C0 		strh	ip, [r3, r1, lsl #1]	@ movhi
+  25:Core/Src/modbus_access.c ****   {
+  81              		.loc 1 25 28 is_stmt 1 discriminator 3 view .LVU22
+  82 0034 0131     		adds	r1, r1, #1
+  83              	.LVL5:
+  25:Core/Src/modbus_access.c ****   {
+  84              		.loc 1 25 28 is_stmt 0 discriminator 3 view .LVU23
+  85 0036 89B2     		uxth	r1, r1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 3
+
+
+  86              	.LVL6:
+  87              	.L3:
+  25:Core/Src/modbus_access.c ****   {
+  88              		.loc 1 25 18 is_stmt 1 discriminator 1 view .LVU24
+  89 0038 9142     		cmp	r1, r2
+  90 003a F3D3     		bcc	.L4
+  28:Core/Src/modbus_access.c ****   }
+  29:Core/Src/modbus_access.c ****   return 1U;
+  91              		.loc 1 29 10 is_stmt 0 view .LVU25
+  92 003c 0120     		movs	r0, #1
+  93              	.LVL7:
+  94              		.loc 1 29 10 view .LVU26
+  95 003e 04E0     		b	.L2
+  96              	.LVL8:
+  97              	.L5:
+  98              	.LCFI1:
+  99              		.cfi_def_cfa_offset 0
+ 100              		.cfi_restore 14
+  13:Core/Src/modbus_access.c ****   }
+ 101              		.loc 1 13 12 view .LVU27
+ 102 0040 0020     		movs	r0, #0
+ 103              	.LVL9:
+  30:Core/Src/modbus_access.c **** }
+ 104              		.loc 1 30 1 view .LVU28
+ 105 0042 7047     		bx	lr
+ 106              	.LVL10:
+ 107              	.L6:
+ 108              	.LCFI2:
+ 109              		.cfi_def_cfa_offset 4
+ 110              		.cfi_offset 14, -4
+  13:Core/Src/modbus_access.c ****   }
+ 111              		.loc 1 13 12 view .LVU29
+ 112 0044 0020     		movs	r0, #0
+ 113              	.LVL11:
+  13:Core/Src/modbus_access.c ****   }
+ 114              		.loc 1 13 12 view .LVU30
+ 115 0046 00E0     		b	.L2
+ 116              	.LVL12:
+ 117              	.L7:
+  13:Core/Src/modbus_access.c ****   }
+ 118              		.loc 1 13 12 view .LVU31
+ 119 0048 0020     		movs	r0, #0
+ 120              	.LVL13:
+ 121              	.L2:
+ 122              		.loc 1 30 1 view .LVU32
+ 123 004a 5DF804FB 		ldr	pc, [sp], #4
+ 124              	.LVL14:
+ 125              	.L8:
+  17:Core/Src/modbus_access.c ****   }
+ 126              		.loc 1 17 12 view .LVU33
+ 127 004e 0020     		movs	r0, #0
+ 128              	.LVL15:
+  17:Core/Src/modbus_access.c ****   }
+ 129              		.loc 1 17 12 view .LVU34
+ 130 0050 FBE7     		b	.L2
+ 131              	.LVL16:
+ 132              	.L9:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 4
+
+
+  22:Core/Src/modbus_access.c ****   }
+ 133              		.loc 1 22 12 view .LVU35
+ 134 0052 0020     		movs	r0, #0
+ 135              	.LVL17:
+  22:Core/Src/modbus_access.c ****   }
+ 136              		.loc 1 22 12 view .LVU36
+ 137 0054 F9E7     		b	.L2
+ 138              		.cfi_endproc
+ 139              	.LFE134:
+ 141              		.section	.text.ModbusSafeRead,"ax",%progbits
+ 142              		.align	1
+ 143              		.syntax unified
+ 144              		.thumb
+ 145              		.thumb_func
+ 147              	ModbusSafeRead:
+ 148              	.LVL18:
+ 149              	.LFB140:
+  31:Core/Src/modbus_access.c **** 
+  32:Core/Src/modbus_access.c **** uint8_t ModbusGetU16(const modbus_cache_t *cache, uint16_t addr, uint16_t *out)
+  33:Core/Src/modbus_access.c **** {
+  34:Core/Src/modbus_access.c ****   uint16_t reg;
+  35:Core/Src/modbus_access.c ****   if (ModbusReadRegs(cache, addr, 1U, &reg) == 0U)
+  36:Core/Src/modbus_access.c ****   {
+  37:Core/Src/modbus_access.c ****     return 0U;
+  38:Core/Src/modbus_access.c ****   }
+  39:Core/Src/modbus_access.c ****   *out = reg;
+  40:Core/Src/modbus_access.c ****   return 1U;
+  41:Core/Src/modbus_access.c **** }
+  42:Core/Src/modbus_access.c **** 
+  43:Core/Src/modbus_access.c **** uint8_t ModbusGetS16(const modbus_cache_t *cache, uint16_t addr, int16_t *out)
+  44:Core/Src/modbus_access.c **** {
+  45:Core/Src/modbus_access.c ****   uint16_t reg;
+  46:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusReadRegs(cache, addr, 1U, &reg) == 0U))
+  47:Core/Src/modbus_access.c ****   {
+  48:Core/Src/modbus_access.c ****     return 0U;
+  49:Core/Src/modbus_access.c ****   }
+  50:Core/Src/modbus_access.c ****   *out = (int16_t)reg;
+  51:Core/Src/modbus_access.c ****   return 1U;
+  52:Core/Src/modbus_access.c **** }
+  53:Core/Src/modbus_access.c **** 
+  54:Core/Src/modbus_access.c **** uint8_t ModbusGetU32(const modbus_cache_t *cache, uint16_t addr, uint32_t *out)
+  55:Core/Src/modbus_access.c **** {
+  56:Core/Src/modbus_access.c ****   uint16_t regs[2];
+  57:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusReadRegs(cache, addr, 2U, regs) == 0U))
+  58:Core/Src/modbus_access.c ****   {
+  59:Core/Src/modbus_access.c ****     return 0U;
+  60:Core/Src/modbus_access.c ****   }
+  61:Core/Src/modbus_access.c ****   *out = ((uint32_t)regs[0] << 16) | regs[1];
+  62:Core/Src/modbus_access.c ****   return 1U;
+  63:Core/Src/modbus_access.c **** }
+  64:Core/Src/modbus_access.c **** 
+  65:Core/Src/modbus_access.c **** uint8_t ModbusGetS32(const modbus_cache_t *cache, uint16_t addr, int32_t *out)
+  66:Core/Src/modbus_access.c **** {
+  67:Core/Src/modbus_access.c ****   uint32_t u32;
+  68:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusGetU32(cache, addr, &u32) == 0U))
+  69:Core/Src/modbus_access.c ****   {
+  70:Core/Src/modbus_access.c ****     return 0U;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 5
+
+
+  71:Core/Src/modbus_access.c ****   }
+  72:Core/Src/modbus_access.c ****   *out = (int32_t)u32;
+  73:Core/Src/modbus_access.c ****   return 1U;
+  74:Core/Src/modbus_access.c **** }
+  75:Core/Src/modbus_access.c **** 
+  76:Core/Src/modbus_access.c **** uint8_t ModbusGetF32(const modbus_cache_t *cache, uint16_t addr, float *out)
+  77:Core/Src/modbus_access.c **** {
+  78:Core/Src/modbus_access.c ****   uint32_t raw;
+  79:Core/Src/modbus_access.c ****   union
+  80:Core/Src/modbus_access.c ****   {
+  81:Core/Src/modbus_access.c ****     uint32_t u32;
+  82:Core/Src/modbus_access.c ****     float f32;
+  83:Core/Src/modbus_access.c ****   } conv;
+  84:Core/Src/modbus_access.c **** 
+  85:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusGetU32(cache, addr, &raw) == 0U))
+  86:Core/Src/modbus_access.c ****   {
+  87:Core/Src/modbus_access.c ****     return 0U;
+  88:Core/Src/modbus_access.c ****   }
+  89:Core/Src/modbus_access.c ****   conv.u32 = raw;
+  90:Core/Src/modbus_access.c ****   *out = conv.f32;
+  91:Core/Src/modbus_access.c ****   return 1U;
+  92:Core/Src/modbus_access.c **** }
+  93:Core/Src/modbus_access.c **** 
+  94:Core/Src/modbus_access.c **** static uint8_t ModbusSafeRead(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t add
+  95:Core/Src/modbus_access.c **** {
+ 150              		.loc 1 95 1 is_stmt 1 view -0
+ 151              		.cfi_startproc
+ 152              		@ args = 4, pretend = 0, frame = 520
+ 153              		@ frame_needed = 0, uses_anonymous_args = 0
+  96:Core/Src/modbus_access.c ****   modbus_cache_t snap;
+ 154              		.loc 1 96 3 view .LVU38
+  97:Core/Src/modbus_access.c ****   uint8_t ok;
+ 155              		.loc 1 97 3 view .LVU39
+  98:Core/Src/modbus_access.c ****   if ((cache == 0) || (mutex == 0) || (out == 0))
+ 156              		.loc 1 98 3 view .LVU40
+ 157              		.loc 1 98 6 is_stmt 0 view .LVU41
+ 158 0000 10B3     		cbz	r0, .L16
+  95:Core/Src/modbus_access.c ****   modbus_cache_t snap;
+ 159              		.loc 1 95 1 view .LVU42
+ 160 0002 F0B5     		push	{r4, r5, r6, r7, lr}
+ 161              	.LCFI3:
+ 162              		.cfi_def_cfa_offset 20
+ 163              		.cfi_offset 4, -20
+ 164              		.cfi_offset 5, -16
+ 165              		.cfi_offset 6, -12
+ 166              		.cfi_offset 7, -8
+ 167              		.cfi_offset 14, -4
+ 168 0004 ADF5037D 		sub	sp, sp, #524
+ 169              	.LCFI4:
+ 170              		.cfi_def_cfa_offset 544
+ 171 0008 0C46     		mov	r4, r1
+ 172 000a 1546     		mov	r5, r2
+ 173 000c 1E46     		mov	r6, r3
+ 174 000e 0746     		mov	r7, r0
+ 175              		.loc 1 98 20 discriminator 1 view .LVU43
+ 176 0010 E1B1     		cbz	r1, .L17
+ 177              		.loc 1 98 36 discriminator 2 view .LVU44
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 6
+
+
+ 178 0012 889B     		ldr	r3, [sp, #544]
+ 179              	.LVL19:
+ 180              		.loc 1 98 36 discriminator 2 view .LVU45
+ 181 0014 E3B1     		cbz	r3, .L18
+  99:Core/Src/modbus_access.c ****   {
+ 100:Core/Src/modbus_access.c ****     return 0U;
+ 101:Core/Src/modbus_access.c ****   }
+ 102:Core/Src/modbus_access.c ****   if (osMutexAcquire(mutex, 5U) != osOK)
+ 182              		.loc 1 102 3 is_stmt 1 view .LVU46
+ 183              		.loc 1 102 7 is_stmt 0 view .LVU47
+ 184 0016 0521     		movs	r1, #5
+ 185              	.LVL20:
+ 186              		.loc 1 102 7 view .LVU48
+ 187 0018 2046     		mov	r0, r4
+ 188              	.LVL21:
+ 189              		.loc 1 102 7 view .LVU49
+ 190 001a FFF7FEFF 		bl	osMutexAcquire
+ 191              	.LVL22:
+ 192              		.loc 1 102 6 discriminator 1 view .LVU50
+ 193 001e 18B1     		cbz	r0, .L24
+ 103:Core/Src/modbus_access.c ****   {
+ 104:Core/Src/modbus_access.c ****     return 0U;
+ 194              		.loc 1 104 12 view .LVU51
+ 195 0020 0020     		movs	r0, #0
+ 196              	.L15:
+ 105:Core/Src/modbus_access.c ****   }
+ 106:Core/Src/modbus_access.c ****   snap = *(const modbus_cache_t *)cache;
+ 107:Core/Src/modbus_access.c ****   osMutexRelease(mutex);
+ 108:Core/Src/modbus_access.c ****   ok = ModbusReadRegs(&snap, addr, words, out);
+ 109:Core/Src/modbus_access.c ****   return ok;
+ 110:Core/Src/modbus_access.c **** }
+ 197              		.loc 1 110 1 view .LVU52
+ 198 0022 0DF5037D 		add	sp, sp, #524
+ 199              	.LCFI5:
+ 200              		.cfi_remember_state
+ 201              		.cfi_def_cfa_offset 20
+ 202              		@ sp needed
+ 203 0026 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 204              	.LVL23:
+ 205              	.L24:
+ 206              	.LCFI6:
+ 207              		.cfi_restore_state
+ 106:Core/Src/modbus_access.c ****   osMutexRelease(mutex);
+ 208              		.loc 1 106 3 is_stmt 1 view .LVU53
+ 106:Core/Src/modbus_access.c ****   osMutexRelease(mutex);
+ 209              		.loc 1 106 8 is_stmt 0 view .LVU54
+ 210 0028 4FF40272 		mov	r2, #520
+ 211 002c 3946     		mov	r1, r7
+ 212 002e 6846     		mov	r0, sp
+ 213 0030 FFF7FEFF 		bl	memcpy
+ 214              	.LVL24:
+ 107:Core/Src/modbus_access.c ****   ok = ModbusReadRegs(&snap, addr, words, out);
+ 215              		.loc 1 107 3 is_stmt 1 view .LVU55
+ 216 0034 2046     		mov	r0, r4
+ 217 0036 FFF7FEFF 		bl	osMutexRelease
+ 218              	.LVL25:
+ 108:Core/Src/modbus_access.c ****   return ok;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 7
+
+
+ 219              		.loc 1 108 3 view .LVU56
+ 108:Core/Src/modbus_access.c ****   return ok;
+ 220              		.loc 1 108 8 is_stmt 0 view .LVU57
+ 221 003a 889B     		ldr	r3, [sp, #544]
+ 222 003c 3246     		mov	r2, r6
+ 223 003e 2946     		mov	r1, r5
+ 224 0040 6846     		mov	r0, sp
+ 225 0042 FFF7FEFF 		bl	ModbusReadRegs
+ 226              	.LVL26:
+ 109:Core/Src/modbus_access.c **** }
+ 227              		.loc 1 109 3 is_stmt 1 view .LVU58
+ 109:Core/Src/modbus_access.c **** }
+ 228              		.loc 1 109 10 is_stmt 0 view .LVU59
+ 229 0046 ECE7     		b	.L15
+ 230              	.LVL27:
+ 231              	.L16:
+ 232              	.LCFI7:
+ 233              		.cfi_def_cfa_offset 0
+ 234              		.cfi_restore 4
+ 235              		.cfi_restore 5
+ 236              		.cfi_restore 6
+ 237              		.cfi_restore 7
+ 238              		.cfi_restore 14
+ 100:Core/Src/modbus_access.c ****   }
+ 239              		.loc 1 100 12 view .LVU60
+ 240 0048 0020     		movs	r0, #0
+ 241              	.LVL28:
+ 242              		.loc 1 110 1 view .LVU61
+ 243 004a 7047     		bx	lr
+ 244              	.LVL29:
+ 245              	.L17:
+ 246              	.LCFI8:
+ 247              		.cfi_def_cfa_offset 544
+ 248              		.cfi_offset 4, -20
+ 249              		.cfi_offset 5, -16
+ 250              		.cfi_offset 6, -12
+ 251              		.cfi_offset 7, -8
+ 252              		.cfi_offset 14, -4
+ 100:Core/Src/modbus_access.c ****   }
+ 253              		.loc 1 100 12 view .LVU62
+ 254 004c 0020     		movs	r0, #0
+ 255              	.LVL30:
+ 100:Core/Src/modbus_access.c ****   }
+ 256              		.loc 1 100 12 view .LVU63
+ 257 004e E8E7     		b	.L15
+ 258              	.LVL31:
+ 259              	.L18:
+ 100:Core/Src/modbus_access.c ****   }
+ 260              		.loc 1 100 12 view .LVU64
+ 261 0050 0020     		movs	r0, #0
+ 262              	.LVL32:
+ 100:Core/Src/modbus_access.c ****   }
+ 263              		.loc 1 100 12 view .LVU65
+ 264 0052 E6E7     		b	.L15
+ 265              		.cfi_endproc
+ 266              	.LFE140:
+ 268              		.section	.text.ModbusGetU16,"ax",%progbits
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 8
+
+
+ 269              		.align	1
+ 270              		.global	ModbusGetU16
+ 271              		.syntax unified
+ 272              		.thumb
+ 273              		.thumb_func
+ 275              	ModbusGetU16:
+ 276              	.LVL33:
+ 277              	.LFB135:
+  33:Core/Src/modbus_access.c ****   uint16_t reg;
+ 278              		.loc 1 33 1 is_stmt 1 view -0
+ 279              		.cfi_startproc
+ 280              		@ args = 0, pretend = 0, frame = 8
+ 281              		@ frame_needed = 0, uses_anonymous_args = 0
+  33:Core/Src/modbus_access.c ****   uint16_t reg;
+ 282              		.loc 1 33 1 is_stmt 0 view .LVU67
+ 283 0000 10B5     		push	{r4, lr}
+ 284              	.LCFI9:
+ 285              		.cfi_def_cfa_offset 8
+ 286              		.cfi_offset 4, -8
+ 287              		.cfi_offset 14, -4
+ 288 0002 82B0     		sub	sp, sp, #8
+ 289              	.LCFI10:
+ 290              		.cfi_def_cfa_offset 16
+ 291 0004 1446     		mov	r4, r2
+  34:Core/Src/modbus_access.c ****   if (ModbusReadRegs(cache, addr, 1U, &reg) == 0U)
+ 292              		.loc 1 34 3 is_stmt 1 view .LVU68
+  35:Core/Src/modbus_access.c ****   {
+ 293              		.loc 1 35 3 view .LVU69
+  35:Core/Src/modbus_access.c ****   {
+ 294              		.loc 1 35 7 is_stmt 0 view .LVU70
+ 295 0006 0DF10603 		add	r3, sp, #6
+ 296 000a 0122     		movs	r2, #1
+ 297              	.LVL34:
+  35:Core/Src/modbus_access.c ****   {
+ 298              		.loc 1 35 7 view .LVU71
+ 299 000c FFF7FEFF 		bl	ModbusReadRegs
+ 300              	.LVL35:
+  35:Core/Src/modbus_access.c ****   {
+ 301              		.loc 1 35 6 discriminator 1 view .LVU72
+ 302 0010 18B1     		cbz	r0, .L26
+  39:Core/Src/modbus_access.c ****   return 1U;
+ 303              		.loc 1 39 3 is_stmt 1 view .LVU73
+  39:Core/Src/modbus_access.c ****   return 1U;
+ 304              		.loc 1 39 8 is_stmt 0 view .LVU74
+ 305 0012 BDF80630 		ldrh	r3, [sp, #6]
+ 306 0016 2380     		strh	r3, [r4]	@ movhi
+  40:Core/Src/modbus_access.c **** }
+ 307              		.loc 1 40 3 is_stmt 1 view .LVU75
+  40:Core/Src/modbus_access.c **** }
+ 308              		.loc 1 40 10 is_stmt 0 view .LVU76
+ 309 0018 0120     		movs	r0, #1
+ 310              	.L26:
+  41:Core/Src/modbus_access.c **** 
+ 311              		.loc 1 41 1 view .LVU77
+ 312 001a 02B0     		add	sp, sp, #8
+ 313              	.LCFI11:
+ 314              		.cfi_def_cfa_offset 8
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 9
+
+
+ 315              		@ sp needed
+ 316 001c 10BD     		pop	{r4, pc}
+  41:Core/Src/modbus_access.c **** 
+ 317              		.loc 1 41 1 view .LVU78
+ 318              		.cfi_endproc
+ 319              	.LFE135:
+ 321              		.section	.text.ModbusGetS16,"ax",%progbits
+ 322              		.align	1
+ 323              		.global	ModbusGetS16
+ 324              		.syntax unified
+ 325              		.thumb
+ 326              		.thumb_func
+ 328              	ModbusGetS16:
+ 329              	.LVL36:
+ 330              	.LFB136:
+  44:Core/Src/modbus_access.c ****   uint16_t reg;
+ 331              		.loc 1 44 1 is_stmt 1 view -0
+ 332              		.cfi_startproc
+ 333              		@ args = 0, pretend = 0, frame = 8
+ 334              		@ frame_needed = 0, uses_anonymous_args = 0
+  45:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusReadRegs(cache, addr, 1U, &reg) == 0U))
+ 335              		.loc 1 45 3 view .LVU80
+  46:Core/Src/modbus_access.c ****   {
+ 336              		.loc 1 46 3 view .LVU81
+  46:Core/Src/modbus_access.c ****   {
+ 337              		.loc 1 46 6 is_stmt 0 view .LVU82
+ 338 0000 82B1     		cbz	r2, .L33
+  44:Core/Src/modbus_access.c ****   uint16_t reg;
+ 339              		.loc 1 44 1 view .LVU83
+ 340 0002 10B5     		push	{r4, lr}
+ 341              	.LCFI12:
+ 342              		.cfi_def_cfa_offset 8
+ 343              		.cfi_offset 4, -8
+ 344              		.cfi_offset 14, -4
+ 345 0004 82B0     		sub	sp, sp, #8
+ 346              	.LCFI13:
+ 347              		.cfi_def_cfa_offset 16
+ 348 0006 1446     		mov	r4, r2
+  46:Core/Src/modbus_access.c ****   {
+ 349              		.loc 1 46 22 discriminator 1 view .LVU84
+ 350 0008 0DF10603 		add	r3, sp, #6
+ 351 000c 0122     		movs	r2, #1
+ 352              	.LVL37:
+  46:Core/Src/modbus_access.c ****   {
+ 353              		.loc 1 46 22 discriminator 1 view .LVU85
+ 354 000e FFF7FEFF 		bl	ModbusReadRegs
+ 355              	.LVL38:
+  46:Core/Src/modbus_access.c ****   {
+ 356              		.loc 1 46 18 discriminator 1 view .LVU86
+ 357 0012 28B1     		cbz	r0, .L36
+  50:Core/Src/modbus_access.c ****   return 1U;
+ 358              		.loc 1 50 3 is_stmt 1 view .LVU87
+  50:Core/Src/modbus_access.c ****   return 1U;
+ 359              		.loc 1 50 10 is_stmt 0 view .LVU88
+ 360 0014 BDF90630 		ldrsh	r3, [sp, #6]
+  50:Core/Src/modbus_access.c ****   return 1U;
+ 361              		.loc 1 50 8 view .LVU89
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 10
+
+
+ 362 0018 2380     		strh	r3, [r4]	@ movhi
+  51:Core/Src/modbus_access.c **** }
+ 363              		.loc 1 51 3 is_stmt 1 view .LVU90
+  51:Core/Src/modbus_access.c **** }
+ 364              		.loc 1 51 10 is_stmt 0 view .LVU91
+ 365 001a 0120     		movs	r0, #1
+ 366              	.L31:
+  52:Core/Src/modbus_access.c **** 
+ 367              		.loc 1 52 1 view .LVU92
+ 368 001c 02B0     		add	sp, sp, #8
+ 369              	.LCFI14:
+ 370              		.cfi_remember_state
+ 371              		.cfi_def_cfa_offset 8
+ 372              		@ sp needed
+ 373 001e 10BD     		pop	{r4, pc}
+ 374              	.LVL39:
+ 375              	.L36:
+ 376              	.LCFI15:
+ 377              		.cfi_restore_state
+  48:Core/Src/modbus_access.c ****   }
+ 378              		.loc 1 48 5 is_stmt 1 view .LVU93
+  48:Core/Src/modbus_access.c ****   }
+ 379              		.loc 1 48 12 is_stmt 0 view .LVU94
+ 380 0020 0020     		movs	r0, #0
+ 381 0022 FBE7     		b	.L31
+ 382              	.LVL40:
+ 383              	.L33:
+ 384              	.LCFI16:
+ 385              		.cfi_def_cfa_offset 0
+ 386              		.cfi_restore 4
+ 387              		.cfi_restore 14
+  48:Core/Src/modbus_access.c ****   }
+ 388              		.loc 1 48 5 is_stmt 1 view .LVU95
+  48:Core/Src/modbus_access.c ****   }
+ 389              		.loc 1 48 12 is_stmt 0 view .LVU96
+ 390 0024 0020     		movs	r0, #0
+ 391              	.LVL41:
+  52:Core/Src/modbus_access.c **** 
+ 392              		.loc 1 52 1 view .LVU97
+ 393 0026 7047     		bx	lr
+ 394              		.cfi_endproc
+ 395              	.LFE136:
+ 397              		.section	.text.ModbusGetU32,"ax",%progbits
+ 398              		.align	1
+ 399              		.global	ModbusGetU32
+ 400              		.syntax unified
+ 401              		.thumb
+ 402              		.thumb_func
+ 404              	ModbusGetU32:
+ 405              	.LVL42:
+ 406              	.LFB137:
+  55:Core/Src/modbus_access.c ****   uint16_t regs[2];
+ 407              		.loc 1 55 1 is_stmt 1 view -0
+ 408              		.cfi_startproc
+ 409              		@ args = 0, pretend = 0, frame = 8
+ 410              		@ frame_needed = 0, uses_anonymous_args = 0
+  56:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusReadRegs(cache, addr, 2U, regs) == 0U))
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 11
+
+
+ 411              		.loc 1 56 3 view .LVU99
+  57:Core/Src/modbus_access.c ****   {
+ 412              		.loc 1 57 3 view .LVU100
+  57:Core/Src/modbus_access.c ****   {
+ 413              		.loc 1 57 6 is_stmt 0 view .LVU101
+ 414 0000 9AB1     		cbz	r2, .L42
+  55:Core/Src/modbus_access.c ****   uint16_t regs[2];
+ 415              		.loc 1 55 1 view .LVU102
+ 416 0002 10B5     		push	{r4, lr}
+ 417              	.LCFI17:
+ 418              		.cfi_def_cfa_offset 8
+ 419              		.cfi_offset 4, -8
+ 420              		.cfi_offset 14, -4
+ 421 0004 82B0     		sub	sp, sp, #8
+ 422              	.LCFI18:
+ 423              		.cfi_def_cfa_offset 16
+ 424 0006 1446     		mov	r4, r2
+  57:Core/Src/modbus_access.c ****   {
+ 425              		.loc 1 57 22 discriminator 1 view .LVU103
+ 426 0008 01AB     		add	r3, sp, #4
+ 427 000a 0222     		movs	r2, #2
+ 428              	.LVL43:
+  57:Core/Src/modbus_access.c ****   {
+ 429              		.loc 1 57 22 discriminator 1 view .LVU104
+ 430 000c FFF7FEFF 		bl	ModbusReadRegs
+ 431              	.LVL44:
+  57:Core/Src/modbus_access.c ****   {
+ 432              		.loc 1 57 18 discriminator 1 view .LVU105
+ 433 0010 48B1     		cbz	r0, .L45
+  61:Core/Src/modbus_access.c ****   return 1U;
+ 434              		.loc 1 61 3 is_stmt 1 view .LVU106
+  61:Core/Src/modbus_access.c ****   return 1U;
+ 435              		.loc 1 61 25 is_stmt 0 view .LVU107
+ 436 0012 BDF80420 		ldrh	r2, [sp, #4]
+  61:Core/Src/modbus_access.c ****   return 1U;
+ 437              		.loc 1 61 42 view .LVU108
+ 438 0016 BDF80630 		ldrh	r3, [sp, #6]
+  61:Core/Src/modbus_access.c ****   return 1U;
+ 439              		.loc 1 61 36 view .LVU109
+ 440 001a 43EA0243 		orr	r3, r3, r2, lsl #16
+  61:Core/Src/modbus_access.c ****   return 1U;
+ 441              		.loc 1 61 8 view .LVU110
+ 442 001e 2360     		str	r3, [r4]
+  62:Core/Src/modbus_access.c **** }
+ 443              		.loc 1 62 3 is_stmt 1 view .LVU111
+  62:Core/Src/modbus_access.c **** }
+ 444              		.loc 1 62 10 is_stmt 0 view .LVU112
+ 445 0020 0120     		movs	r0, #1
+ 446              	.L40:
+  63:Core/Src/modbus_access.c **** 
+ 447              		.loc 1 63 1 view .LVU113
+ 448 0022 02B0     		add	sp, sp, #8
+ 449              	.LCFI19:
+ 450              		.cfi_remember_state
+ 451              		.cfi_def_cfa_offset 8
+ 452              		@ sp needed
+ 453 0024 10BD     		pop	{r4, pc}
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 12
+
+
+ 454              	.LVL45:
+ 455              	.L45:
+ 456              	.LCFI20:
+ 457              		.cfi_restore_state
+  59:Core/Src/modbus_access.c ****   }
+ 458              		.loc 1 59 5 is_stmt 1 view .LVU114
+  59:Core/Src/modbus_access.c ****   }
+ 459              		.loc 1 59 12 is_stmt 0 view .LVU115
+ 460 0026 0020     		movs	r0, #0
+ 461 0028 FBE7     		b	.L40
+ 462              	.LVL46:
+ 463              	.L42:
+ 464              	.LCFI21:
+ 465              		.cfi_def_cfa_offset 0
+ 466              		.cfi_restore 4
+ 467              		.cfi_restore 14
+  59:Core/Src/modbus_access.c ****   }
+ 468              		.loc 1 59 5 is_stmt 1 view .LVU116
+  59:Core/Src/modbus_access.c ****   }
+ 469              		.loc 1 59 12 is_stmt 0 view .LVU117
+ 470 002a 0020     		movs	r0, #0
+ 471              	.LVL47:
+  63:Core/Src/modbus_access.c **** 
+ 472              		.loc 1 63 1 view .LVU118
+ 473 002c 7047     		bx	lr
+ 474              		.cfi_endproc
+ 475              	.LFE137:
+ 477              		.section	.text.ModbusGetS32,"ax",%progbits
+ 478              		.align	1
+ 479              		.global	ModbusGetS32
+ 480              		.syntax unified
+ 481              		.thumb
+ 482              		.thumb_func
+ 484              	ModbusGetS32:
+ 485              	.LVL48:
+ 486              	.LFB138:
+  66:Core/Src/modbus_access.c ****   uint32_t u32;
+ 487              		.loc 1 66 1 is_stmt 1 view -0
+ 488              		.cfi_startproc
+ 489              		@ args = 0, pretend = 0, frame = 8
+ 490              		@ frame_needed = 0, uses_anonymous_args = 0
+  67:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusGetU32(cache, addr, &u32) == 0U))
+ 491              		.loc 1 67 3 view .LVU120
+  68:Core/Src/modbus_access.c ****   {
+ 492              		.loc 1 68 3 view .LVU121
+  68:Core/Src/modbus_access.c ****   {
+ 493              		.loc 1 68 6 is_stmt 0 view .LVU122
+ 494 0000 6AB1     		cbz	r2, .L51
+  66:Core/Src/modbus_access.c ****   uint32_t u32;
+ 495              		.loc 1 66 1 view .LVU123
+ 496 0002 10B5     		push	{r4, lr}
+ 497              	.LCFI22:
+ 498              		.cfi_def_cfa_offset 8
+ 499              		.cfi_offset 4, -8
+ 500              		.cfi_offset 14, -4
+ 501 0004 82B0     		sub	sp, sp, #8
+ 502              	.LCFI23:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 13
+
+
+ 503              		.cfi_def_cfa_offset 16
+ 504 0006 1446     		mov	r4, r2
+  68:Core/Src/modbus_access.c ****   {
+ 505              		.loc 1 68 22 discriminator 1 view .LVU124
+ 506 0008 01AA     		add	r2, sp, #4
+ 507              	.LVL49:
+  68:Core/Src/modbus_access.c ****   {
+ 508              		.loc 1 68 22 discriminator 1 view .LVU125
+ 509 000a FFF7FEFF 		bl	ModbusGetU32
+ 510              	.LVL50:
+  68:Core/Src/modbus_access.c ****   {
+ 511              		.loc 1 68 18 discriminator 1 view .LVU126
+ 512 000e 20B1     		cbz	r0, .L54
+  72:Core/Src/modbus_access.c ****   return 1U;
+ 513              		.loc 1 72 3 is_stmt 1 view .LVU127
+  72:Core/Src/modbus_access.c ****   return 1U;
+ 514              		.loc 1 72 10 is_stmt 0 view .LVU128
+ 515 0010 019B     		ldr	r3, [sp, #4]
+  72:Core/Src/modbus_access.c ****   return 1U;
+ 516              		.loc 1 72 8 view .LVU129
+ 517 0012 2360     		str	r3, [r4]
+  73:Core/Src/modbus_access.c **** }
+ 518              		.loc 1 73 3 is_stmt 1 view .LVU130
+  73:Core/Src/modbus_access.c **** }
+ 519              		.loc 1 73 10 is_stmt 0 view .LVU131
+ 520 0014 0120     		movs	r0, #1
+ 521              	.L49:
+  74:Core/Src/modbus_access.c **** 
+ 522              		.loc 1 74 1 view .LVU132
+ 523 0016 02B0     		add	sp, sp, #8
+ 524              	.LCFI24:
+ 525              		.cfi_remember_state
+ 526              		.cfi_def_cfa_offset 8
+ 527              		@ sp needed
+ 528 0018 10BD     		pop	{r4, pc}
+ 529              	.LVL51:
+ 530              	.L54:
+ 531              	.LCFI25:
+ 532              		.cfi_restore_state
+  70:Core/Src/modbus_access.c ****   }
+ 533              		.loc 1 70 5 is_stmt 1 view .LVU133
+  70:Core/Src/modbus_access.c ****   }
+ 534              		.loc 1 70 12 is_stmt 0 view .LVU134
+ 535 001a 0020     		movs	r0, #0
+ 536 001c FBE7     		b	.L49
+ 537              	.LVL52:
+ 538              	.L51:
+ 539              	.LCFI26:
+ 540              		.cfi_def_cfa_offset 0
+ 541              		.cfi_restore 4
+ 542              		.cfi_restore 14
+  70:Core/Src/modbus_access.c ****   }
+ 543              		.loc 1 70 5 is_stmt 1 view .LVU135
+  70:Core/Src/modbus_access.c ****   }
+ 544              		.loc 1 70 12 is_stmt 0 view .LVU136
+ 545 001e 0020     		movs	r0, #0
+ 546              	.LVL53:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 14
+
+
+  74:Core/Src/modbus_access.c **** 
+ 547              		.loc 1 74 1 view .LVU137
+ 548 0020 7047     		bx	lr
+ 549              		.cfi_endproc
+ 550              	.LFE138:
+ 552              		.section	.text.ModbusGetF32,"ax",%progbits
+ 553              		.align	1
+ 554              		.global	ModbusGetF32
+ 555              		.syntax unified
+ 556              		.thumb
+ 557              		.thumb_func
+ 559              	ModbusGetF32:
+ 560              	.LVL54:
+ 561              	.LFB139:
+  77:Core/Src/modbus_access.c ****   uint32_t raw;
+ 562              		.loc 1 77 1 is_stmt 1 view -0
+ 563              		.cfi_startproc
+ 564              		@ args = 0, pretend = 0, frame = 8
+ 565              		@ frame_needed = 0, uses_anonymous_args = 0
+  78:Core/Src/modbus_access.c ****   union
+ 566              		.loc 1 78 3 view .LVU139
+  79:Core/Src/modbus_access.c ****   {
+ 567              		.loc 1 79 3 view .LVU140
+  85:Core/Src/modbus_access.c ****   {
+ 568              		.loc 1 85 3 view .LVU141
+  85:Core/Src/modbus_access.c ****   {
+ 569              		.loc 1 85 6 is_stmt 0 view .LVU142
+ 570 0000 6AB1     		cbz	r2, .L60
+  77:Core/Src/modbus_access.c ****   uint32_t raw;
+ 571              		.loc 1 77 1 view .LVU143
+ 572 0002 10B5     		push	{r4, lr}
+ 573              	.LCFI27:
+ 574              		.cfi_def_cfa_offset 8
+ 575              		.cfi_offset 4, -8
+ 576              		.cfi_offset 14, -4
+ 577 0004 82B0     		sub	sp, sp, #8
+ 578              	.LCFI28:
+ 579              		.cfi_def_cfa_offset 16
+ 580 0006 1446     		mov	r4, r2
+  85:Core/Src/modbus_access.c ****   {
+ 581              		.loc 1 85 22 discriminator 1 view .LVU144
+ 582 0008 01AA     		add	r2, sp, #4
+ 583              	.LVL55:
+  85:Core/Src/modbus_access.c ****   {
+ 584              		.loc 1 85 22 discriminator 1 view .LVU145
+ 585 000a FFF7FEFF 		bl	ModbusGetU32
+ 586              	.LVL56:
+  85:Core/Src/modbus_access.c ****   {
+ 587              		.loc 1 85 18 discriminator 1 view .LVU146
+ 588 000e 20B1     		cbz	r0, .L63
+  89:Core/Src/modbus_access.c ****   *out = conv.f32;
+ 589              		.loc 1 89 3 is_stmt 1 view .LVU147
+  90:Core/Src/modbus_access.c ****   return 1U;
+ 590              		.loc 1 90 3 view .LVU148
+  90:Core/Src/modbus_access.c ****   return 1U;
+ 591              		.loc 1 90 8 is_stmt 0 view .LVU149
+ 592 0010 019B     		ldr	r3, [sp, #4]	@ float
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 15
+
+
+ 593 0012 2360     		str	r3, [r4]	@ float
+  91:Core/Src/modbus_access.c **** }
+ 594              		.loc 1 91 3 is_stmt 1 view .LVU150
+  91:Core/Src/modbus_access.c **** }
+ 595              		.loc 1 91 10 is_stmt 0 view .LVU151
+ 596 0014 0120     		movs	r0, #1
+ 597              	.L58:
+  92:Core/Src/modbus_access.c **** 
+ 598              		.loc 1 92 1 view .LVU152
+ 599 0016 02B0     		add	sp, sp, #8
+ 600              	.LCFI29:
+ 601              		.cfi_remember_state
+ 602              		.cfi_def_cfa_offset 8
+ 603              		@ sp needed
+ 604 0018 10BD     		pop	{r4, pc}
+ 605              	.LVL57:
+ 606              	.L63:
+ 607              	.LCFI30:
+ 608              		.cfi_restore_state
+  87:Core/Src/modbus_access.c ****   }
+ 609              		.loc 1 87 5 is_stmt 1 view .LVU153
+  87:Core/Src/modbus_access.c ****   }
+ 610              		.loc 1 87 12 is_stmt 0 view .LVU154
+ 611 001a 0020     		movs	r0, #0
+ 612 001c FBE7     		b	.L58
+ 613              	.LVL58:
+ 614              	.L60:
+ 615              	.LCFI31:
+ 616              		.cfi_def_cfa_offset 0
+ 617              		.cfi_restore 4
+ 618              		.cfi_restore 14
+  87:Core/Src/modbus_access.c ****   }
+ 619              		.loc 1 87 5 is_stmt 1 view .LVU155
+  87:Core/Src/modbus_access.c ****   }
+ 620              		.loc 1 87 12 is_stmt 0 view .LVU156
+ 621 001e 0020     		movs	r0, #0
+ 622              	.LVL59:
+  92:Core/Src/modbus_access.c **** 
+ 623              		.loc 1 92 1 view .LVU157
+ 624 0020 7047     		bx	lr
+ 625              		.cfi_endproc
+ 626              	.LFE139:
+ 628              		.section	.text.ModbusGetU16Safe,"ax",%progbits
+ 629              		.align	1
+ 630              		.global	ModbusGetU16Safe
+ 631              		.syntax unified
+ 632              		.thumb
+ 633              		.thumb_func
+ 635              	ModbusGetU16Safe:
+ 636              	.LVL60:
+ 637              	.LFB141:
+ 111:Core/Src/modbus_access.c **** 
+ 112:Core/Src/modbus_access.c **** uint8_t ModbusGetU16Safe(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t addr, ui
+ 113:Core/Src/modbus_access.c **** {
+ 638              		.loc 1 113 1 is_stmt 1 view -0
+ 639              		.cfi_startproc
+ 640              		@ args = 0, pretend = 0, frame = 8
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 16
+
+
+ 641              		@ frame_needed = 0, uses_anonymous_args = 0
+ 114:Core/Src/modbus_access.c ****   uint16_t reg;
+ 642              		.loc 1 114 3 view .LVU159
+ 115:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusSafeRead(cache, mutex, addr, 1U, &reg) == 0U))
+ 643              		.loc 1 115 3 view .LVU160
+ 644              		.loc 1 115 6 is_stmt 0 view .LVU161
+ 645 0000 8BB1     		cbz	r3, .L69
+ 113:Core/Src/modbus_access.c ****   uint16_t reg;
+ 646              		.loc 1 113 1 view .LVU162
+ 647 0002 10B5     		push	{r4, lr}
+ 648              	.LCFI32:
+ 649              		.cfi_def_cfa_offset 8
+ 650              		.cfi_offset 4, -8
+ 651              		.cfi_offset 14, -4
+ 652 0004 84B0     		sub	sp, sp, #16
+ 653              	.LCFI33:
+ 654              		.cfi_def_cfa_offset 24
+ 655 0006 1C46     		mov	r4, r3
+ 656              		.loc 1 115 22 discriminator 1 view .LVU163
+ 657 0008 0DF10E03 		add	r3, sp, #14
+ 658              	.LVL61:
+ 659              		.loc 1 115 22 discriminator 1 view .LVU164
+ 660 000c 0093     		str	r3, [sp]
+ 661 000e 0123     		movs	r3, #1
+ 662 0010 FFF7FEFF 		bl	ModbusSafeRead
+ 663              	.LVL62:
+ 664              		.loc 1 115 18 discriminator 1 view .LVU165
+ 665 0014 28B1     		cbz	r0, .L72
+ 116:Core/Src/modbus_access.c ****   {
+ 117:Core/Src/modbus_access.c ****     return 0U;
+ 118:Core/Src/modbus_access.c ****   }
+ 119:Core/Src/modbus_access.c ****   *out = reg;
+ 666              		.loc 1 119 3 is_stmt 1 view .LVU166
+ 667              		.loc 1 119 8 is_stmt 0 view .LVU167
+ 668 0016 BDF80E30 		ldrh	r3, [sp, #14]
+ 669 001a 2380     		strh	r3, [r4]	@ movhi
+ 120:Core/Src/modbus_access.c ****   return 1U;
+ 670              		.loc 1 120 3 is_stmt 1 view .LVU168
+ 671              		.loc 1 120 10 is_stmt 0 view .LVU169
+ 672 001c 0120     		movs	r0, #1
+ 673              	.L67:
+ 121:Core/Src/modbus_access.c **** }
+ 674              		.loc 1 121 1 view .LVU170
+ 675 001e 04B0     		add	sp, sp, #16
+ 676              	.LCFI34:
+ 677              		.cfi_remember_state
+ 678              		.cfi_def_cfa_offset 8
+ 679              		@ sp needed
+ 680 0020 10BD     		pop	{r4, pc}
+ 681              	.LVL63:
+ 682              	.L72:
+ 683              	.LCFI35:
+ 684              		.cfi_restore_state
+ 117:Core/Src/modbus_access.c ****   }
+ 685              		.loc 1 117 5 is_stmt 1 view .LVU171
+ 117:Core/Src/modbus_access.c ****   }
+ 686              		.loc 1 117 12 is_stmt 0 view .LVU172
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 17
+
+
+ 687 0022 0020     		movs	r0, #0
+ 688 0024 FBE7     		b	.L67
+ 689              	.LVL64:
+ 690              	.L69:
+ 691              	.LCFI36:
+ 692              		.cfi_def_cfa_offset 0
+ 693              		.cfi_restore 4
+ 694              		.cfi_restore 14
+ 117:Core/Src/modbus_access.c ****   }
+ 695              		.loc 1 117 5 is_stmt 1 view .LVU173
+ 117:Core/Src/modbus_access.c ****   }
+ 696              		.loc 1 117 12 is_stmt 0 view .LVU174
+ 697 0026 0020     		movs	r0, #0
+ 698              	.LVL65:
+ 699              		.loc 1 121 1 view .LVU175
+ 700 0028 7047     		bx	lr
+ 701              		.cfi_endproc
+ 702              	.LFE141:
+ 704              		.section	.text.ModbusGetS16Safe,"ax",%progbits
+ 705              		.align	1
+ 706              		.global	ModbusGetS16Safe
+ 707              		.syntax unified
+ 708              		.thumb
+ 709              		.thumb_func
+ 711              	ModbusGetS16Safe:
+ 712              	.LVL66:
+ 713              	.LFB142:
+ 122:Core/Src/modbus_access.c **** 
+ 123:Core/Src/modbus_access.c **** uint8_t ModbusGetS16Safe(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t addr, in
+ 124:Core/Src/modbus_access.c **** {
+ 714              		.loc 1 124 1 is_stmt 1 view -0
+ 715              		.cfi_startproc
+ 716              		@ args = 0, pretend = 0, frame = 8
+ 717              		@ frame_needed = 0, uses_anonymous_args = 0
+ 125:Core/Src/modbus_access.c ****   uint16_t reg;
+ 718              		.loc 1 125 3 view .LVU177
+ 126:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusSafeRead(cache, mutex, addr, 1U, &reg) == 0U))
+ 719              		.loc 1 126 3 view .LVU178
+ 720              		.loc 1 126 6 is_stmt 0 view .LVU179
+ 721 0000 8BB1     		cbz	r3, .L78
+ 124:Core/Src/modbus_access.c ****   uint16_t reg;
+ 722              		.loc 1 124 1 view .LVU180
+ 723 0002 10B5     		push	{r4, lr}
+ 724              	.LCFI37:
+ 725              		.cfi_def_cfa_offset 8
+ 726              		.cfi_offset 4, -8
+ 727              		.cfi_offset 14, -4
+ 728 0004 84B0     		sub	sp, sp, #16
+ 729              	.LCFI38:
+ 730              		.cfi_def_cfa_offset 24
+ 731 0006 1C46     		mov	r4, r3
+ 732              		.loc 1 126 22 discriminator 1 view .LVU181
+ 733 0008 0DF10E03 		add	r3, sp, #14
+ 734              	.LVL67:
+ 735              		.loc 1 126 22 discriminator 1 view .LVU182
+ 736 000c 0093     		str	r3, [sp]
+ 737 000e 0123     		movs	r3, #1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 18
+
+
+ 738 0010 FFF7FEFF 		bl	ModbusSafeRead
+ 739              	.LVL68:
+ 740              		.loc 1 126 18 discriminator 1 view .LVU183
+ 741 0014 28B1     		cbz	r0, .L81
+ 127:Core/Src/modbus_access.c ****   {
+ 128:Core/Src/modbus_access.c ****     return 0U;
+ 129:Core/Src/modbus_access.c ****   }
+ 130:Core/Src/modbus_access.c ****   *out = (int16_t)reg;
+ 742              		.loc 1 130 3 is_stmt 1 view .LVU184
+ 743              		.loc 1 130 10 is_stmt 0 view .LVU185
+ 744 0016 BDF90E30 		ldrsh	r3, [sp, #14]
+ 745              		.loc 1 130 8 view .LVU186
+ 746 001a 2380     		strh	r3, [r4]	@ movhi
+ 131:Core/Src/modbus_access.c ****   return 1U;
+ 747              		.loc 1 131 3 is_stmt 1 view .LVU187
+ 748              		.loc 1 131 10 is_stmt 0 view .LVU188
+ 749 001c 0120     		movs	r0, #1
+ 750              	.L76:
+ 132:Core/Src/modbus_access.c **** }
+ 751              		.loc 1 132 1 view .LVU189
+ 752 001e 04B0     		add	sp, sp, #16
+ 753              	.LCFI39:
+ 754              		.cfi_remember_state
+ 755              		.cfi_def_cfa_offset 8
+ 756              		@ sp needed
+ 757 0020 10BD     		pop	{r4, pc}
+ 758              	.LVL69:
+ 759              	.L81:
+ 760              	.LCFI40:
+ 761              		.cfi_restore_state
+ 128:Core/Src/modbus_access.c ****   }
+ 762              		.loc 1 128 5 is_stmt 1 view .LVU190
+ 128:Core/Src/modbus_access.c ****   }
+ 763              		.loc 1 128 12 is_stmt 0 view .LVU191
+ 764 0022 0020     		movs	r0, #0
+ 765 0024 FBE7     		b	.L76
+ 766              	.LVL70:
+ 767              	.L78:
+ 768              	.LCFI41:
+ 769              		.cfi_def_cfa_offset 0
+ 770              		.cfi_restore 4
+ 771              		.cfi_restore 14
+ 128:Core/Src/modbus_access.c ****   }
+ 772              		.loc 1 128 5 is_stmt 1 view .LVU192
+ 128:Core/Src/modbus_access.c ****   }
+ 773              		.loc 1 128 12 is_stmt 0 view .LVU193
+ 774 0026 0020     		movs	r0, #0
+ 775              	.LVL71:
+ 776              		.loc 1 132 1 view .LVU194
+ 777 0028 7047     		bx	lr
+ 778              		.cfi_endproc
+ 779              	.LFE142:
+ 781              		.section	.text.ModbusGetU32Safe,"ax",%progbits
+ 782              		.align	1
+ 783              		.global	ModbusGetU32Safe
+ 784              		.syntax unified
+ 785              		.thumb
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 19
+
+
+ 786              		.thumb_func
+ 788              	ModbusGetU32Safe:
+ 789              	.LVL72:
+ 790              	.LFB143:
+ 133:Core/Src/modbus_access.c **** 
+ 134:Core/Src/modbus_access.c **** uint8_t ModbusGetU32Safe(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t addr, ui
+ 135:Core/Src/modbus_access.c **** {
+ 791              		.loc 1 135 1 is_stmt 1 view -0
+ 792              		.cfi_startproc
+ 793              		@ args = 0, pretend = 0, frame = 8
+ 794              		@ frame_needed = 0, uses_anonymous_args = 0
+ 136:Core/Src/modbus_access.c ****   uint16_t regs[2];
+ 795              		.loc 1 136 3 view .LVU196
+ 137:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusSafeRead(cache, mutex, addr, 2U, regs) == 0U))
+ 796              		.loc 1 137 3 view .LVU197
+ 797              		.loc 1 137 6 is_stmt 0 view .LVU198
+ 798 0000 A3B1     		cbz	r3, .L87
+ 135:Core/Src/modbus_access.c ****   uint16_t regs[2];
+ 799              		.loc 1 135 1 view .LVU199
+ 800 0002 10B5     		push	{r4, lr}
+ 801              	.LCFI42:
+ 802              		.cfi_def_cfa_offset 8
+ 803              		.cfi_offset 4, -8
+ 804              		.cfi_offset 14, -4
+ 805 0004 84B0     		sub	sp, sp, #16
+ 806              	.LCFI43:
+ 807              		.cfi_def_cfa_offset 24
+ 808 0006 1C46     		mov	r4, r3
+ 809              		.loc 1 137 22 discriminator 1 view .LVU200
+ 810 0008 03AB     		add	r3, sp, #12
+ 811              	.LVL73:
+ 812              		.loc 1 137 22 discriminator 1 view .LVU201
+ 813 000a 0093     		str	r3, [sp]
+ 814 000c 0223     		movs	r3, #2
+ 815 000e FFF7FEFF 		bl	ModbusSafeRead
+ 816              	.LVL74:
+ 817              		.loc 1 137 18 discriminator 1 view .LVU202
+ 818 0012 48B1     		cbz	r0, .L90
+ 138:Core/Src/modbus_access.c ****   {
+ 139:Core/Src/modbus_access.c ****     return 0U;
+ 140:Core/Src/modbus_access.c ****   }
+ 141:Core/Src/modbus_access.c ****   *out = ((uint32_t)regs[0] << 16) | regs[1];
+ 819              		.loc 1 141 3 is_stmt 1 view .LVU203
+ 820              		.loc 1 141 25 is_stmt 0 view .LVU204
+ 821 0014 BDF80C20 		ldrh	r2, [sp, #12]
+ 822              		.loc 1 141 42 view .LVU205
+ 823 0018 BDF80E30 		ldrh	r3, [sp, #14]
+ 824              		.loc 1 141 36 view .LVU206
+ 825 001c 43EA0243 		orr	r3, r3, r2, lsl #16
+ 826              		.loc 1 141 8 view .LVU207
+ 827 0020 2360     		str	r3, [r4]
+ 142:Core/Src/modbus_access.c ****   return 1U;
+ 828              		.loc 1 142 3 is_stmt 1 view .LVU208
+ 829              		.loc 1 142 10 is_stmt 0 view .LVU209
+ 830 0022 0120     		movs	r0, #1
+ 831              	.L85:
+ 143:Core/Src/modbus_access.c **** }
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 20
+
+
+ 832              		.loc 1 143 1 view .LVU210
+ 833 0024 04B0     		add	sp, sp, #16
+ 834              	.LCFI44:
+ 835              		.cfi_remember_state
+ 836              		.cfi_def_cfa_offset 8
+ 837              		@ sp needed
+ 838 0026 10BD     		pop	{r4, pc}
+ 839              	.LVL75:
+ 840              	.L90:
+ 841              	.LCFI45:
+ 842              		.cfi_restore_state
+ 139:Core/Src/modbus_access.c ****   }
+ 843              		.loc 1 139 5 is_stmt 1 view .LVU211
+ 139:Core/Src/modbus_access.c ****   }
+ 844              		.loc 1 139 12 is_stmt 0 view .LVU212
+ 845 0028 0020     		movs	r0, #0
+ 846 002a FBE7     		b	.L85
+ 847              	.LVL76:
+ 848              	.L87:
+ 849              	.LCFI46:
+ 850              		.cfi_def_cfa_offset 0
+ 851              		.cfi_restore 4
+ 852              		.cfi_restore 14
+ 139:Core/Src/modbus_access.c ****   }
+ 853              		.loc 1 139 5 is_stmt 1 view .LVU213
+ 139:Core/Src/modbus_access.c ****   }
+ 854              		.loc 1 139 12 is_stmt 0 view .LVU214
+ 855 002c 0020     		movs	r0, #0
+ 856              	.LVL77:
+ 857              		.loc 1 143 1 view .LVU215
+ 858 002e 7047     		bx	lr
+ 859              		.cfi_endproc
+ 860              	.LFE143:
+ 862              		.section	.text.ModbusGetS32Safe,"ax",%progbits
+ 863              		.align	1
+ 864              		.global	ModbusGetS32Safe
+ 865              		.syntax unified
+ 866              		.thumb
+ 867              		.thumb_func
+ 869              	ModbusGetS32Safe:
+ 870              	.LVL78:
+ 871              	.LFB144:
+ 144:Core/Src/modbus_access.c **** 
+ 145:Core/Src/modbus_access.c **** uint8_t ModbusGetS32Safe(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t addr, in
+ 146:Core/Src/modbus_access.c **** {
+ 872              		.loc 1 146 1 is_stmt 1 view -0
+ 873              		.cfi_startproc
+ 874              		@ args = 0, pretend = 0, frame = 8
+ 875              		@ frame_needed = 0, uses_anonymous_args = 0
+ 147:Core/Src/modbus_access.c ****   uint32_t u32;
+ 876              		.loc 1 147 3 view .LVU217
+ 148:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusGetU32Safe(cache, mutex, addr, &u32) == 0U))
+ 877              		.loc 1 148 3 view .LVU218
+ 878              		.loc 1 148 6 is_stmt 0 view .LVU219
+ 879 0000 6BB1     		cbz	r3, .L96
+ 146:Core/Src/modbus_access.c ****   uint32_t u32;
+ 880              		.loc 1 146 1 view .LVU220
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 21
+
+
+ 881 0002 10B5     		push	{r4, lr}
+ 882              	.LCFI47:
+ 883              		.cfi_def_cfa_offset 8
+ 884              		.cfi_offset 4, -8
+ 885              		.cfi_offset 14, -4
+ 886 0004 82B0     		sub	sp, sp, #8
+ 887              	.LCFI48:
+ 888              		.cfi_def_cfa_offset 16
+ 889 0006 1C46     		mov	r4, r3
+ 890              		.loc 1 148 22 discriminator 1 view .LVU221
+ 891 0008 01AB     		add	r3, sp, #4
+ 892              	.LVL79:
+ 893              		.loc 1 148 22 discriminator 1 view .LVU222
+ 894 000a FFF7FEFF 		bl	ModbusGetU32Safe
+ 895              	.LVL80:
+ 896              		.loc 1 148 18 discriminator 1 view .LVU223
+ 897 000e 20B1     		cbz	r0, .L99
+ 149:Core/Src/modbus_access.c ****   {
+ 150:Core/Src/modbus_access.c ****     return 0U;
+ 151:Core/Src/modbus_access.c ****   }
+ 152:Core/Src/modbus_access.c ****   *out = (int32_t)u32;
+ 898              		.loc 1 152 3 is_stmt 1 view .LVU224
+ 899              		.loc 1 152 10 is_stmt 0 view .LVU225
+ 900 0010 019B     		ldr	r3, [sp, #4]
+ 901              		.loc 1 152 8 view .LVU226
+ 902 0012 2360     		str	r3, [r4]
+ 153:Core/Src/modbus_access.c ****   return 1U;
+ 903              		.loc 1 153 3 is_stmt 1 view .LVU227
+ 904              		.loc 1 153 10 is_stmt 0 view .LVU228
+ 905 0014 0120     		movs	r0, #1
+ 906              	.L94:
+ 154:Core/Src/modbus_access.c **** }
+ 907              		.loc 1 154 1 view .LVU229
+ 908 0016 02B0     		add	sp, sp, #8
+ 909              	.LCFI49:
+ 910              		.cfi_remember_state
+ 911              		.cfi_def_cfa_offset 8
+ 912              		@ sp needed
+ 913 0018 10BD     		pop	{r4, pc}
+ 914              	.LVL81:
+ 915              	.L99:
+ 916              	.LCFI50:
+ 917              		.cfi_restore_state
+ 150:Core/Src/modbus_access.c ****   }
+ 918              		.loc 1 150 5 is_stmt 1 view .LVU230
+ 150:Core/Src/modbus_access.c ****   }
+ 919              		.loc 1 150 12 is_stmt 0 view .LVU231
+ 920 001a 0020     		movs	r0, #0
+ 921 001c FBE7     		b	.L94
+ 922              	.LVL82:
+ 923              	.L96:
+ 924              	.LCFI51:
+ 925              		.cfi_def_cfa_offset 0
+ 926              		.cfi_restore 4
+ 927              		.cfi_restore 14
+ 150:Core/Src/modbus_access.c ****   }
+ 928              		.loc 1 150 5 is_stmt 1 view .LVU232
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 22
+
+
+ 150:Core/Src/modbus_access.c ****   }
+ 929              		.loc 1 150 12 is_stmt 0 view .LVU233
+ 930 001e 0020     		movs	r0, #0
+ 931              	.LVL83:
+ 932              		.loc 1 154 1 view .LVU234
+ 933 0020 7047     		bx	lr
+ 934              		.cfi_endproc
+ 935              	.LFE144:
+ 937              		.section	.text.ModbusGetF32Safe,"ax",%progbits
+ 938              		.align	1
+ 939              		.global	ModbusGetF32Safe
+ 940              		.syntax unified
+ 941              		.thumb
+ 942              		.thumb_func
+ 944              	ModbusGetF32Safe:
+ 945              	.LVL84:
+ 946              	.LFB145:
+ 155:Core/Src/modbus_access.c **** 
+ 156:Core/Src/modbus_access.c **** uint8_t ModbusGetF32Safe(const volatile modbus_cache_t *cache, osMutexId_t mutex, uint16_t addr, fl
+ 157:Core/Src/modbus_access.c **** {
+ 947              		.loc 1 157 1 is_stmt 1 view -0
+ 948              		.cfi_startproc
+ 949              		@ args = 0, pretend = 0, frame = 8
+ 950              		@ frame_needed = 0, uses_anonymous_args = 0
+ 158:Core/Src/modbus_access.c ****   uint32_t raw;
+ 951              		.loc 1 158 3 view .LVU236
+ 159:Core/Src/modbus_access.c ****   union
+ 952              		.loc 1 159 3 view .LVU237
+ 160:Core/Src/modbus_access.c ****   {
+ 161:Core/Src/modbus_access.c ****     uint32_t u32;
+ 162:Core/Src/modbus_access.c ****     float f32;
+ 163:Core/Src/modbus_access.c ****   } conv;
+ 164:Core/Src/modbus_access.c **** 
+ 165:Core/Src/modbus_access.c ****   if ((out == 0) || (ModbusGetU32Safe(cache, mutex, addr, &raw) == 0U))
+ 953              		.loc 1 165 3 view .LVU238
+ 954              		.loc 1 165 6 is_stmt 0 view .LVU239
+ 955 0000 6BB1     		cbz	r3, .L105
+ 157:Core/Src/modbus_access.c ****   uint32_t raw;
+ 956              		.loc 1 157 1 view .LVU240
+ 957 0002 10B5     		push	{r4, lr}
+ 958              	.LCFI52:
+ 959              		.cfi_def_cfa_offset 8
+ 960              		.cfi_offset 4, -8
+ 961              		.cfi_offset 14, -4
+ 962 0004 82B0     		sub	sp, sp, #8
+ 963              	.LCFI53:
+ 964              		.cfi_def_cfa_offset 16
+ 965 0006 1C46     		mov	r4, r3
+ 966              		.loc 1 165 22 discriminator 1 view .LVU241
+ 967 0008 01AB     		add	r3, sp, #4
+ 968              	.LVL85:
+ 969              		.loc 1 165 22 discriminator 1 view .LVU242
+ 970 000a FFF7FEFF 		bl	ModbusGetU32Safe
+ 971              	.LVL86:
+ 972              		.loc 1 165 18 discriminator 1 view .LVU243
+ 973 000e 20B1     		cbz	r0, .L108
+ 166:Core/Src/modbus_access.c ****   {
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 23
+
+
+ 167:Core/Src/modbus_access.c ****     return 0U;
+ 168:Core/Src/modbus_access.c ****   }
+ 169:Core/Src/modbus_access.c ****   conv.u32 = raw;
+ 974              		.loc 1 169 3 is_stmt 1 view .LVU244
+ 170:Core/Src/modbus_access.c ****   *out = conv.f32;
+ 975              		.loc 1 170 3 view .LVU245
+ 976              		.loc 1 170 8 is_stmt 0 view .LVU246
+ 977 0010 019B     		ldr	r3, [sp, #4]	@ float
+ 978 0012 2360     		str	r3, [r4]	@ float
+ 171:Core/Src/modbus_access.c ****   return 1U;
+ 979              		.loc 1 171 3 is_stmt 1 view .LVU247
+ 980              		.loc 1 171 10 is_stmt 0 view .LVU248
+ 981 0014 0120     		movs	r0, #1
+ 982              	.L103:
+ 172:Core/Src/modbus_access.c **** }
+ 983              		.loc 1 172 1 view .LVU249
+ 984 0016 02B0     		add	sp, sp, #8
+ 985              	.LCFI54:
+ 986              		.cfi_remember_state
+ 987              		.cfi_def_cfa_offset 8
+ 988              		@ sp needed
+ 989 0018 10BD     		pop	{r4, pc}
+ 990              	.LVL87:
+ 991              	.L108:
+ 992              	.LCFI55:
+ 993              		.cfi_restore_state
+ 167:Core/Src/modbus_access.c ****   }
+ 994              		.loc 1 167 5 is_stmt 1 view .LVU250
+ 167:Core/Src/modbus_access.c ****   }
+ 995              		.loc 1 167 12 is_stmt 0 view .LVU251
+ 996 001a 0020     		movs	r0, #0
+ 997 001c FBE7     		b	.L103
+ 998              	.LVL88:
+ 999              	.L105:
+ 1000              	.LCFI56:
+ 1001              		.cfi_def_cfa_offset 0
+ 1002              		.cfi_restore 4
+ 1003              		.cfi_restore 14
+ 167:Core/Src/modbus_access.c ****   }
+ 1004              		.loc 1 167 5 is_stmt 1 view .LVU252
+ 167:Core/Src/modbus_access.c ****   }
+ 1005              		.loc 1 167 12 is_stmt 0 view .LVU253
+ 1006 001e 0020     		movs	r0, #0
+ 1007              	.LVL89:
+ 1008              		.loc 1 172 1 view .LVU254
+ 1009 0020 7047     		bx	lr
+ 1010              		.cfi_endproc
+ 1011              	.LFE145:
+ 1013              		.text
+ 1014              	.Letext0:
+ 1015              		.file 2 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 1016              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 1017              		.file 4 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 1018              		.file 5 "Core/Inc/main.h"
+ 1019              		.file 6 "<built-in>"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHVpBng.s 			page 24
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 modbus_access.c
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:21     .text.ModbusReadRegs:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:26     .text.ModbusReadRegs:00000000 ModbusReadRegs
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:142    .text.ModbusSafeRead:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:147    .text.ModbusSafeRead:00000000 ModbusSafeRead
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:269    .text.ModbusGetU16:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:275    .text.ModbusGetU16:00000000 ModbusGetU16
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:322    .text.ModbusGetS16:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:328    .text.ModbusGetS16:00000000 ModbusGetS16
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:398    .text.ModbusGetU32:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:404    .text.ModbusGetU32:00000000 ModbusGetU32
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:478    .text.ModbusGetS32:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:484    .text.ModbusGetS32:00000000 ModbusGetS32
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:553    .text.ModbusGetF32:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:559    .text.ModbusGetF32:00000000 ModbusGetF32
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:629    .text.ModbusGetU16Safe:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:635    .text.ModbusGetU16Safe:00000000 ModbusGetU16Safe
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:705    .text.ModbusGetS16Safe:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:711    .text.ModbusGetS16Safe:00000000 ModbusGetS16Safe
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:782    .text.ModbusGetU32Safe:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:788    .text.ModbusGetU32Safe:00000000 ModbusGetU32Safe
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:863    .text.ModbusGetS32Safe:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:869    .text.ModbusGetS32Safe:00000000 ModbusGetS32Safe
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:938    .text.ModbusGetF32Safe:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHVpBng.s:944    .text.ModbusGetF32Safe:00000000 ModbusGetF32Safe
+
+UNDEFINED SYMBOLS
+osMutexAcquire
+memcpy
+osMutexRelease

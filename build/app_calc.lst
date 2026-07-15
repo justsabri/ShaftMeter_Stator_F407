@@ -1,0 +1,2920 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"app_calc.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/app_calc.c"
+  20              		.global	__aeabi_f2d
+  21              		.section	.rodata.AppCalc_LogCoeffSnapshot.str1.4,"aMS",%progbits,1
+  22              		.align	2
+  23              	.LC0:
+  24 0000 5B43414C 		.ascii	"[CALC-PARAM] outer=%.3f inner=%.3f G=%.3f E=%.3f po"
+  24      432D5041 
+  24      52414D5D 
+  24      206F7574 
+  24      65723D25 
+  25 0033 6973736F 		.ascii	"isson=%.4f prop=%u mod_sel=%u avg_mode=%u\015\012\000"
+  25      6E3D252E 
+  25      34662070 
+  25      726F703D 
+  25      2575206D 
+  26 005f 00       		.align	2
+  27              	.LC1:
+  28 0060 5B43414C 		.ascii	"[CALC-PARAM] calib1=%.6f calib2=%.6f sens1=%.6f sen"
+  28      432D5041 
+  28      52414D5D 
+  28      2063616C 
+  28      6962313D 
+  29 0093 73323D25 		.ascii	"s2=%.6f zero1=%.6f zero2=%.6f coeffT=%.9f coeffF=%."
+  29      2E366620 
+  29      7A65726F 
+  29      313D252E 
+  29      3666207A 
+  30 00c6 39660D0A 		.ascii	"9f\015\012\000"
+  30      00
+  31              		.section	.text.AppCalc_LogCoeffSnapshot,"ax",%progbits
+  32              		.align	1
+  33              		.syntax unified
+  34              		.thumb
+  35              		.thumb_func
+  37              	AppCalc_LogCoeffSnapshot:
+  38              	.LVL0:
+  39              	.LFB245:
+   1:Core/Src/app_calc.c **** #include "app_calc.h"
+   2:Core/Src/app_calc.c **** #include "FreeRTOS.h"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 2
+
+
+   3:Core/Src/app_calc.c **** #include "task.h"
+   4:Core/Src/app_calc.c **** #include <math.h>
+   5:Core/Src/app_calc.c **** #include <string.h>
+   6:Core/Src/app_calc.c **** 
+   7:Core/Src/app_calc.c **** #define OMEGA_PER_RPM           0.104719755f
+   8:Core/Src/app_calc.c **** #define DEFAULT_ZERO_VOLTAGE    0.0f
+   9:Core/Src/app_calc.c **** #define MM_TO_M                 0.001f
+  10:Core/Src/app_calc.c **** #define GPA_TO_PA               1000000000.0f
+  11:Core/Src/app_calc.c **** #define MIN_GEOM_EPS            1.0e-9f
+  12:Core/Src/app_calc.c **** #define PI_F                    3.14159265359f
+  13:Core/Src/app_calc.c **** #define MICRO_STRAIN_SCALE      1000000.0f
+  14:Core/Src/app_calc.c **** #define APP_CALC_LOG_DETAIL     0U
+  15:Core/Src/app_calc.c **** #define APP_CALC_LOG_COEFF_SNAPSHOT 1U
+  16:Core/Src/app_calc.c **** 
+  17:Core/Src/app_calc.c **** typedef struct
+  18:Core/Src/app_calc.c **** {
+  19:Core/Src/app_calc.c ****   double ch1_sum;
+  20:Core/Src/app_calc.c ****   double ch2_sum;
+  21:Core/Src/app_calc.c ****   double ch1_sq_sum;
+  22:Core/Src/app_calc.c ****   double ch2_sq_sum;
+  23:Core/Src/app_calc.c ****   float rpm_sum;
+  24:Core/Src/app_calc.c ****   uint32_t sample_count;
+  25:Core/Src/app_calc.c ****   uint32_t rpm_count;
+  26:Core/Src/app_calc.c **** } calc_accum_t;
+  27:Core/Src/app_calc.c **** 
+  28:Core/Src/app_calc.c **** static volatile calc_accum_t s_calc_accum;
+  29:Core/Src/app_calc.c **** static uint8_t s_zero_collecting = 0U;
+  30:Core/Src/app_calc.c **** static double s_zero_sum_ch1 = 0.0;
+  31:Core/Src/app_calc.c **** static double s_zero_sum_ch2 = 0.0;
+  32:Core/Src/app_calc.c **** static double s_zero_sq_sum_ch1 = 0.0;
+  33:Core/Src/app_calc.c **** static double s_zero_sq_sum_ch2 = 0.0;
+  34:Core/Src/app_calc.c **** static uint32_t s_zero_count = 0U;
+  35:Core/Src/app_calc.c **** static uint16_t s_zero_avg_mode = 0U;
+  36:Core/Src/app_calc.c **** static volatile uint8_t s_force_zero_input = 0U;
+  37:Core/Src/app_calc.c **** static float s_strain_coeff[2] = {1.0f, 1.0f};
+  38:Core/Src/app_calc.c **** static float s_torque_coeff = 0.0f;
+  39:Core/Src/app_calc.c **** static float s_thrust_coeff = 0.0f;
+  40:Core/Src/app_calc.c **** static float s_last_calib_factor[2] = {0.0f, 0.0f};
+  41:Core/Src/app_calc.c **** static float s_last_gauge_sens[2] = {0.0f, 0.0f};
+  42:Core/Src/app_calc.c **** static float s_last_shear_mod_gpa = 0.0f;
+  43:Core/Src/app_calc.c **** static float s_last_elastic_mod_gpa = 0.0f;
+  44:Core/Src/app_calc.c **** static float s_last_poisson_ratio = 0.0f;
+  45:Core/Src/app_calc.c **** static float s_last_outer_mm = 0.0f;
+  46:Core/Src/app_calc.c **** static float s_last_inner_mm = 0.0f;
+  47:Core/Src/app_calc.c **** static uint16_t s_last_prop_dir = 0xFFFFU;
+  48:Core/Src/app_calc.c **** static uint16_t s_last_modulus_select = 0xFFFFU;
+  49:Core/Src/app_calc.c **** static float s_modulus_g_gpa = 0.0f;
+  50:Core/Src/app_calc.c **** static float s_modulus_e_gpa = 0.0f;
+  51:Core/Src/app_calc.c **** 
+  52:Core/Src/app_calc.c **** static float AppCalc_RawToVoltage(uint32_t raw)
+  53:Core/Src/app_calc.c **** {
+  54:Core/Src/app_calc.c ****   float v;
+  55:Core/Src/app_calc.c ****   memcpy(&v, &raw, sizeof(v));
+  56:Core/Src/app_calc.c ****   if (isfinite(v))
+  57:Core/Src/app_calc.c ****   {
+  58:Core/Src/app_calc.c ****     return v;
+  59:Core/Src/app_calc.c ****   }
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 3
+
+
+  60:Core/Src/app_calc.c ****   return (float)raw * 0.000001f;
+  61:Core/Src/app_calc.c **** }
+  62:Core/Src/app_calc.c **** 
+  63:Core/Src/app_calc.c **** static float AppCalc_PolarInertiaM4(float outer_mm, float inner_mm)
+  64:Core/Src/app_calc.c **** {
+  65:Core/Src/app_calc.c ****   const float pi_over_32 = 0.0981747704f;
+  66:Core/Src/app_calc.c ****   float do_m = outer_mm * MM_TO_M;
+  67:Core/Src/app_calc.c ****   float di_m = inner_mm * MM_TO_M;
+  68:Core/Src/app_calc.c ****   float j;
+  69:Core/Src/app_calc.c **** 
+  70:Core/Src/app_calc.c ****   if (do_m <= 0.0f)
+  71:Core/Src/app_calc.c ****   {
+  72:Core/Src/app_calc.c ****     return 0.0f;
+  73:Core/Src/app_calc.c ****   }
+  74:Core/Src/app_calc.c ****   if (di_m < 0.0f)
+  75:Core/Src/app_calc.c ****   {
+  76:Core/Src/app_calc.c ****     di_m = 0.0f;
+  77:Core/Src/app_calc.c ****   }
+  78:Core/Src/app_calc.c ****   if (di_m >= do_m)
+  79:Core/Src/app_calc.c ****   {
+  80:Core/Src/app_calc.c ****     di_m = do_m * 0.999f;
+  81:Core/Src/app_calc.c ****   }
+  82:Core/Src/app_calc.c **** 
+  83:Core/Src/app_calc.c ****   j = pi_over_32 * (do_m * do_m * do_m * do_m - di_m * di_m * di_m * di_m);
+  84:Core/Src/app_calc.c ****   if (j < MIN_GEOM_EPS)
+  85:Core/Src/app_calc.c ****   {
+  86:Core/Src/app_calc.c ****     return 0.0f;
+  87:Core/Src/app_calc.c ****   }
+  88:Core/Src/app_calc.c ****   return j;
+  89:Core/Src/app_calc.c **** }
+  90:Core/Src/app_calc.c **** 
+  91:Core/Src/app_calc.c **** static void AppCalc_LogCoeffSnapshot(const protocol_values_t *v)
+  92:Core/Src/app_calc.c **** {
+  40              		.loc 1 92 1 view -0
+  41              		.cfi_startproc
+  42              		@ args = 0, pretend = 0, frame = 8
+  43              		@ frame_needed = 0, uses_anonymous_args = 0
+  93:Core/Src/app_calc.c **** #if APP_CALC_LOG_COEFF_SNAPSHOT
+  94:Core/Src/app_calc.c ****   if (v == NULL)
+  44              		.loc 1 94 3 view .LVU1
+  45              		.loc 1 94 6 is_stmt 0 view .LVU2
+  46 0000 0028     		cmp	r0, #0
+  47 0002 6CD0     		beq	.L4
+  92:Core/Src/app_calc.c **** #if APP_CALC_LOG_COEFF_SNAPSHOT
+  48              		.loc 1 92 1 view .LVU3
+  49 0004 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+  50              	.LCFI0:
+  51              		.cfi_def_cfa_offset 36
+  52              		.cfi_offset 4, -36
+  53              		.cfi_offset 5, -32
+  54              		.cfi_offset 6, -28
+  55              		.cfi_offset 7, -24
+  56              		.cfi_offset 8, -20
+  57              		.cfi_offset 9, -16
+  58              		.cfi_offset 10, -12
+  59              		.cfi_offset 11, -8
+  60              		.cfi_offset 14, -4
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 4
+
+
+  61 0008 91B0     		sub	sp, sp, #68
+  62              	.LCFI1:
+  63              		.cfi_def_cfa_offset 104
+  64 000a 0446     		mov	r4, r0
+  95:Core/Src/app_calc.c ****   {
+  96:Core/Src/app_calc.c ****     return;
+  97:Core/Src/app_calc.c ****   }
+  98:Core/Src/app_calc.c **** 
+  99:Core/Src/app_calc.c ****   LOGI("[CALC-PARAM] outer=%.3f inner=%.3f G=%.3f E=%.3f poisson=%.4f prop=%u mod_sel=%u avg_mode=%
+  65              		.loc 1 99 3 is_stmt 1 view .LVU4
+  66 000c 456A     		ldr	r5, [r0, #36]	@ float
+  67 000e D0F82880 		ldr	r8, [r0, #40]	@ float
+  68 0012 C66A     		ldr	r6, [r0, #44]	@ float
+  69 0014 076B     		ldr	r7, [r0, #48]	@ float
+  70 0016 B0F83490 		ldrh	r9, [r0, #52]
+  71 001a B0F836A0 		ldrh	r10, [r0, #54]
+  72 001e B0F840B0 		ldrh	fp, [r0, #64]
+  73 0022 006A     		ldr	r0, [r0, #32]	@ float
+  74              	.LVL1:
+  75              		.loc 1 99 3 is_stmt 0 view .LVU5
+  76 0024 FFF7FEFF 		bl	__aeabi_f2d
+  77              	.LVL2:
+  78 0028 CDE90E01 		strd	r0, [sp, #56]
+  79 002c CDF828B0 		str	fp, [sp, #40]
+  80 0030 CDF824A0 		str	r10, [sp, #36]
+  81 0034 CDF82090 		str	r9, [sp, #32]
+  82 0038 3846     		mov	r0, r7	@ float
+  83 003a FFF7FEFF 		bl	__aeabi_f2d
+  84              	.LVL3:
+  85 003e CDE90601 		strd	r0, [sp, #24]
+  86 0042 3046     		mov	r0, r6	@ float
+  87 0044 FFF7FEFF 		bl	__aeabi_f2d
+  88              	.LVL4:
+  89 0048 CDE90401 		strd	r0, [sp, #16]
+  90 004c 4046     		mov	r0, r8	@ float
+  91 004e FFF7FEFF 		bl	__aeabi_f2d
+  92              	.LVL5:
+  93 0052 CDE90201 		strd	r0, [sp, #8]
+  94 0056 2846     		mov	r0, r5	@ float
+  95 0058 FFF7FEFF 		bl	__aeabi_f2d
+  96              	.LVL6:
+  97 005c CDE90001 		strd	r0, [sp]
+  98 0060 DDE90E23 		ldrd	r2, [sp, #56]
+  99 0064 1E48     		ldr	r0, .L7
+ 100 0066 FFF7FEFF 		bl	printf
+ 101              	.LVL7:
+ 100:Core/Src/app_calc.c ****        (double)v->shaft_outer_d_mm,
+ 101:Core/Src/app_calc.c ****        (double)v->shaft_inner_d_mm,
+ 102:Core/Src/app_calc.c ****        (double)v->shear_modulus_GPa,
+ 103:Core/Src/app_calc.c ****        (double)v->elastic_modulus_GPa,
+ 104:Core/Src/app_calc.c ****        (double)v->poisson_ratio,
+ 105:Core/Src/app_calc.c ****        (unsigned int)v->prop_dir,
+ 106:Core/Src/app_calc.c ****        (unsigned int)v->modulus_select,
+ 107:Core/Src/app_calc.c ****        (unsigned int)v->avg_mode);
+ 108:Core/Src/app_calc.c ****   LOGI("[CALC-PARAM] calib1=%.6f calib2=%.6f sens1=%.6f sens2=%.6f zero1=%.6f zero2=%.6f coeffT=%.9
+ 102              		.loc 1 108 3 is_stmt 1 view .LVU6
+ 103 006a A66C     		ldr	r6, [r4, #72]	@ float
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 5
+
+
+ 104 006c E76C     		ldr	r7, [r4, #76]	@ float
+ 105 006e D4F85080 		ldr	r8, [r4, #80]	@ float
+ 106 0072 D4F85490 		ldr	r9, [r4, #84]	@ float
+ 107 0076 D4F858A0 		ldr	r10, [r4, #88]	@ float
+ 108 007a 606C     		ldr	r0, [r4, #68]	@ float
+ 109 007c FFF7FEFF 		bl	__aeabi_f2d
+ 110              	.LVL8:
+ 111 0080 0446     		mov	r4, r0
+ 112              	.LVL9:
+ 113              		.loc 1 108 3 is_stmt 0 view .LVU7
+ 114 0082 0D46     		mov	r5, r1
+ 115 0084 174B     		ldr	r3, .L7+4
+ 116 0086 1868     		ldr	r0, [r3]	@ float
+ 117 0088 FFF7FEFF 		bl	__aeabi_f2d
+ 118              	.LVL10:
+ 119 008c CDE90C01 		strd	r0, [sp, #48]
+ 120 0090 154B     		ldr	r3, .L7+8
+ 121 0092 1868     		ldr	r0, [r3]	@ float
+ 122 0094 FFF7FEFF 		bl	__aeabi_f2d
+ 123              	.LVL11:
+ 124 0098 CDE90A01 		strd	r0, [sp, #40]
+ 125 009c 5046     		mov	r0, r10	@ float
+ 126 009e FFF7FEFF 		bl	__aeabi_f2d
+ 127              	.LVL12:
+ 128 00a2 CDE90801 		strd	r0, [sp, #32]
+ 129 00a6 4846     		mov	r0, r9	@ float
+ 130 00a8 FFF7FEFF 		bl	__aeabi_f2d
+ 131              	.LVL13:
+ 132 00ac CDE90601 		strd	r0, [sp, #24]
+ 133 00b0 4046     		mov	r0, r8	@ float
+ 134 00b2 FFF7FEFF 		bl	__aeabi_f2d
+ 135              	.LVL14:
+ 136 00b6 CDE90401 		strd	r0, [sp, #16]
+ 137 00ba 3846     		mov	r0, r7	@ float
+ 138 00bc FFF7FEFF 		bl	__aeabi_f2d
+ 139              	.LVL15:
+ 140 00c0 CDE90201 		strd	r0, [sp, #8]
+ 141 00c4 3046     		mov	r0, r6	@ float
+ 142 00c6 FFF7FEFF 		bl	__aeabi_f2d
+ 143              	.LVL16:
+ 144 00ca CDE90001 		strd	r0, [sp]
+ 145 00ce 2246     		mov	r2, r4
+ 146 00d0 2B46     		mov	r3, r5
+ 147 00d2 0648     		ldr	r0, .L7+12
+ 148 00d4 FFF7FEFF 		bl	printf
+ 149              	.LVL17:
+ 109:Core/Src/app_calc.c ****        (double)v->calib_factor[0],
+ 110:Core/Src/app_calc.c ****        (double)v->calib_factor[1],
+ 111:Core/Src/app_calc.c ****        (double)v->gauge_sensitivity[0],
+ 112:Core/Src/app_calc.c ****        (double)v->gauge_sensitivity[1],
+ 113:Core/Src/app_calc.c ****        (double)v->zero_voltage[0],
+ 114:Core/Src/app_calc.c ****        (double)v->zero_voltage[1],
+ 115:Core/Src/app_calc.c ****        (double)s_torque_coeff,
+ 116:Core/Src/app_calc.c ****        (double)s_thrust_coeff);
+ 117:Core/Src/app_calc.c **** #else
+ 118:Core/Src/app_calc.c ****   (void)v;
+ 119:Core/Src/app_calc.c **** #endif
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 6
+
+
+ 120:Core/Src/app_calc.c **** }
+ 150              		.loc 1 120 1 view .LVU8
+ 151 00d8 11B0     		add	sp, sp, #68
+ 152              	.LCFI2:
+ 153              		.cfi_def_cfa_offset 36
+ 154              		@ sp needed
+ 155 00da BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 156              	.LVL18:
+ 157              	.L4:
+ 158              	.LCFI3:
+ 159              		.cfi_def_cfa_offset 0
+ 160              		.cfi_restore 4
+ 161              		.cfi_restore 5
+ 162              		.cfi_restore 6
+ 163              		.cfi_restore 7
+ 164              		.cfi_restore 8
+ 165              		.cfi_restore 9
+ 166              		.cfi_restore 10
+ 167              		.cfi_restore 11
+ 168              		.cfi_restore 14
+ 169              		.loc 1 120 1 view .LVU9
+ 170 00de 7047     		bx	lr
+ 171              	.L8:
+ 172              		.align	2
+ 173              	.L7:
+ 174 00e0 00000000 		.word	.LC0
+ 175 00e4 00000000 		.word	s_thrust_coeff
+ 176 00e8 00000000 		.word	s_torque_coeff
+ 177 00ec 60000000 		.word	.LC1
+ 178              		.cfi_endproc
+ 179              	.LFE245:
+ 181              		.section	.text.AppCalc_UpdateCoeffs,"ax",%progbits
+ 182              		.align	1
+ 183              		.syntax unified
+ 184              		.thumb
+ 185              		.thumb_func
+ 187              	AppCalc_UpdateCoeffs:
+ 188              	.LVL19:
+ 189              	.LFB246:
+ 121:Core/Src/app_calc.c **** 
+ 122:Core/Src/app_calc.c **** static void AppCalc_UpdateCoeffs(const protocol_values_t *v)
+ 123:Core/Src/app_calc.c **** {
+ 190              		.loc 1 123 1 is_stmt 1 view -0
+ 191              		.cfi_startproc
+ 192              		@ args = 0, pretend = 0, frame = 0
+ 193              		@ frame_needed = 0, uses_anonymous_args = 0
+ 124:Core/Src/app_calc.c ****   float do_m;
+ 194              		.loc 1 124 3 view .LVU11
+ 125:Core/Src/app_calc.c ****   float di_m;
+ 195              		.loc 1 125 3 view .LVU12
+ 126:Core/Src/app_calc.c ****   float g_gpa;
+ 196              		.loc 1 126 3 view .LVU13
+ 127:Core/Src/app_calc.c ****   float g_pa;
+ 197              		.loc 1 127 3 view .LVU14
+ 128:Core/Src/app_calc.c ****   float e_gpa;
+ 198              		.loc 1 128 3 view .LVU15
+ 129:Core/Src/app_calc.c ****   float dir_sign;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 7
+
+
+ 199              		.loc 1 129 3 view .LVU16
+ 130:Core/Src/app_calc.c ****   float d4;
+ 200              		.loc 1 130 3 view .LVU17
+ 131:Core/Src/app_calc.c ****   float d2;
+ 201              		.loc 1 131 3 view .LVU18
+ 132:Core/Src/app_calc.c ****   float denom;
+ 202              		.loc 1 132 3 view .LVU19
+ 133:Core/Src/app_calc.c **** 
+ 134:Core/Src/app_calc.c ****   if (v == NULL)
+ 203              		.loc 1 134 3 view .LVU20
+ 204              		.loc 1 134 6 is_stmt 0 view .LVU21
+ 205 0000 0028     		cmp	r0, #0
+ 206 0002 00F07A81 		beq	.L49
+ 123:Core/Src/app_calc.c ****   float do_m;
+ 207              		.loc 1 123 1 view .LVU22
+ 208 0006 08B5     		push	{r3, lr}
+ 209              	.LCFI4:
+ 210              		.cfi_def_cfa_offset 8
+ 211              		.cfi_offset 3, -8
+ 212              		.cfi_offset 14, -4
+ 213 0008 0346     		mov	r3, r0
+ 135:Core/Src/app_calc.c ****   {
+ 136:Core/Src/app_calc.c ****     return;
+ 137:Core/Src/app_calc.c ****   }
+ 138:Core/Src/app_calc.c **** 
+ 139:Core/Src/app_calc.c ****   if ((v->calib_factor[0] == s_last_calib_factor[0]) &&
+ 214              		.loc 1 139 3 is_stmt 1 view .LVU23
+ 215              		.loc 1 139 23 is_stmt 0 view .LVU24
+ 216 000a 90ED115A 		vldr.32	s10, [r0, #68]
+ 217              		.loc 1 139 49 view .LVU25
+ 218 000e BB4A     		ldr	r2, .L54
+ 219 0010 D2ED007A 		vldr.32	s15, [r2]
+ 220              		.loc 1 139 6 view .LVU26
+ 221 0014 B4EE675A 		vcmp.f32	s10, s15
+ 222 0018 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 223 001c 52D1     		bne	.L11
+ 140:Core/Src/app_calc.c ****       (v->calib_factor[1] == s_last_calib_factor[1]) &&
+ 224              		.loc 1 140 23 view .LVU27
+ 225 001e 90ED127A 		vldr.32	s14, [r0, #72]
+ 226              		.loc 1 140 49 view .LVU28
+ 227 0022 D2ED017A 		vldr.32	s15, [r2, #4]
+ 139:Core/Src/app_calc.c ****       (v->calib_factor[1] == s_last_calib_factor[1]) &&
+ 228              		.loc 1 139 54 discriminator 1 view .LVU29
+ 229 0026 B4EE677A 		vcmp.f32	s14, s15
+ 230 002a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 231 002e 49D1     		bne	.L11
+ 141:Core/Src/app_calc.c ****       (v->gauge_sensitivity[0] == s_last_gauge_sens[0]) &&
+ 232              		.loc 1 141 28 view .LVU30
+ 233 0030 90ED137A 		vldr.32	s14, [r0, #76]
+ 234              		.loc 1 141 52 view .LVU31
+ 235 0034 B24A     		ldr	r2, .L54+4
+ 236 0036 D2ED007A 		vldr.32	s15, [r2]
+ 140:Core/Src/app_calc.c ****       (v->calib_factor[1] == s_last_calib_factor[1]) &&
+ 237              		.loc 1 140 54 view .LVU32
+ 238 003a B4EE677A 		vcmp.f32	s14, s15
+ 239 003e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 240 0042 3FD1     		bne	.L11
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 8
+
+
+ 142:Core/Src/app_calc.c ****       (v->gauge_sensitivity[1] == s_last_gauge_sens[1]) &&
+ 241              		.loc 1 142 28 view .LVU33
+ 242 0044 90ED147A 		vldr.32	s14, [r0, #80]
+ 243              		.loc 1 142 52 view .LVU34
+ 244 0048 D2ED017A 		vldr.32	s15, [r2, #4]
+ 141:Core/Src/app_calc.c ****       (v->gauge_sensitivity[0] == s_last_gauge_sens[0]) &&
+ 245              		.loc 1 141 57 view .LVU35
+ 246 004c B4EE677A 		vcmp.f32	s14, s15
+ 247 0050 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 248 0054 36D1     		bne	.L11
+ 143:Core/Src/app_calc.c ****       (v->shear_modulus_GPa == s_last_shear_mod_gpa) &&
+ 249              		.loc 1 143 9 view .LVU36
+ 250 0056 90ED0A7A 		vldr.32	s14, [r0, #40]
+ 251              		.loc 1 143 29 view .LVU37
+ 252 005a AA4A     		ldr	r2, .L54+8
+ 253 005c D2ED007A 		vldr.32	s15, [r2]
+ 142:Core/Src/app_calc.c ****       (v->gauge_sensitivity[1] == s_last_gauge_sens[1]) &&
+ 254              		.loc 1 142 57 view .LVU38
+ 255 0060 B4EE677A 		vcmp.f32	s14, s15
+ 256 0064 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 257 0068 2CD1     		bne	.L11
+ 144:Core/Src/app_calc.c ****       (v->elastic_modulus_GPa == s_last_elastic_mod_gpa) &&
+ 258              		.loc 1 144 9 view .LVU39
+ 259 006a 90ED0B7A 		vldr.32	s14, [r0, #44]
+ 260              		.loc 1 144 31 view .LVU40
+ 261 006e A64A     		ldr	r2, .L54+12
+ 262 0070 D2ED007A 		vldr.32	s15, [r2]
+ 143:Core/Src/app_calc.c ****       (v->shear_modulus_GPa == s_last_shear_mod_gpa) &&
+ 263              		.loc 1 143 54 view .LVU41
+ 264 0074 B4EE677A 		vcmp.f32	s14, s15
+ 265 0078 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 266 007c 22D1     		bne	.L11
+ 145:Core/Src/app_calc.c ****       (v->poisson_ratio == s_last_poisson_ratio) &&
+ 267              		.loc 1 145 9 view .LVU42
+ 268 007e 90ED0C7A 		vldr.32	s14, [r0, #48]
+ 269              		.loc 1 145 25 view .LVU43
+ 270 0082 A24A     		ldr	r2, .L54+16
+ 271 0084 D2ED007A 		vldr.32	s15, [r2]
+ 144:Core/Src/app_calc.c ****       (v->elastic_modulus_GPa == s_last_elastic_mod_gpa) &&
+ 272              		.loc 1 144 58 view .LVU44
+ 273 0088 B4EE677A 		vcmp.f32	s14, s15
+ 274 008c F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 275 0090 18D1     		bne	.L11
+ 146:Core/Src/app_calc.c ****       (v->shaft_outer_d_mm == s_last_outer_mm) &&
+ 276              		.loc 1 146 9 view .LVU45
+ 277 0092 90ED087A 		vldr.32	s14, [r0, #32]
+ 278              		.loc 1 146 28 view .LVU46
+ 279 0096 9E4A     		ldr	r2, .L54+20
+ 280 0098 D2ED007A 		vldr.32	s15, [r2]
+ 145:Core/Src/app_calc.c ****       (v->poisson_ratio == s_last_poisson_ratio) &&
+ 281              		.loc 1 145 50 view .LVU47
+ 282 009c B4EE677A 		vcmp.f32	s14, s15
+ 283 00a0 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 284 00a4 0ED1     		bne	.L11
+ 147:Core/Src/app_calc.c ****       (v->shaft_inner_d_mm == s_last_inner_mm) &&
+ 285              		.loc 1 147 9 view .LVU48
+ 286 00a6 90ED097A 		vldr.32	s14, [r0, #36]
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 9
+
+
+ 287              		.loc 1 147 28 view .LVU49
+ 288 00aa 9A4A     		ldr	r2, .L54+24
+ 289 00ac D2ED007A 		vldr.32	s15, [r2]
+ 146:Core/Src/app_calc.c ****       (v->shaft_outer_d_mm == s_last_outer_mm) &&
+ 290              		.loc 1 146 48 view .LVU50
+ 291 00b0 B4EE677A 		vcmp.f32	s14, s15
+ 292 00b4 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 293 00b8 04D1     		bne	.L11
+ 148:Core/Src/app_calc.c ****       (v->prop_dir == s_last_prop_dir) &&
+ 294              		.loc 1 148 9 view .LVU51
+ 295 00ba 818E     		ldrh	r1, [r0, #52]
+ 296              		.loc 1 148 20 view .LVU52
+ 297 00bc 964A     		ldr	r2, .L54+28
+ 298 00be 1288     		ldrh	r2, [r2]
+ 147:Core/Src/app_calc.c ****       (v->shaft_inner_d_mm == s_last_inner_mm) &&
+ 299              		.loc 1 147 48 view .LVU53
+ 300 00c0 9142     		cmp	r1, r2
+ 301 00c2 3FD0     		beq	.L52
+ 302              	.L11:
+ 149:Core/Src/app_calc.c ****       (v->modulus_select == s_last_modulus_select))
+ 150:Core/Src/app_calc.c ****   {
+ 151:Core/Src/app_calc.c ****     return;
+ 152:Core/Src/app_calc.c ****   }
+ 153:Core/Src/app_calc.c **** 
+ 154:Core/Src/app_calc.c ****   s_last_calib_factor[0] = v->calib_factor[0];
+ 303              		.loc 1 154 3 is_stmt 1 view .LVU54
+ 304              		.loc 1 154 26 is_stmt 0 view .LVU55
+ 305 00c4 8D4A     		ldr	r2, .L54
+ 306 00c6 82ED005A 		vstr.32	s10, [r2]
+ 155:Core/Src/app_calc.c ****   s_last_calib_factor[1] = v->calib_factor[1];
+ 307              		.loc 1 155 3 is_stmt 1 view .LVU56
+ 308              		.loc 1 155 43 is_stmt 0 view .LVU57
+ 309 00ca D3ED124A 		vldr.32	s9, [r3, #72]
+ 310              		.loc 1 155 26 view .LVU58
+ 311 00ce C2ED014A 		vstr.32	s9, [r2, #4]
+ 156:Core/Src/app_calc.c ****   s_last_gauge_sens[0] = v->gauge_sensitivity[0];
+ 312              		.loc 1 156 3 is_stmt 1 view .LVU59
+ 313              		.loc 1 156 46 is_stmt 0 view .LVU60
+ 314 00d2 D3ED133A 		vldr.32	s7, [r3, #76]
+ 315              		.loc 1 156 24 view .LVU61
+ 316 00d6 8A4A     		ldr	r2, .L54+4
+ 317 00d8 C2ED003A 		vstr.32	s7, [r2]
+ 157:Core/Src/app_calc.c ****   s_last_gauge_sens[1] = v->gauge_sensitivity[1];
+ 318              		.loc 1 157 3 is_stmt 1 view .LVU62
+ 319              		.loc 1 157 46 is_stmt 0 view .LVU63
+ 320 00dc 93ED144A 		vldr.32	s8, [r3, #80]
+ 321              		.loc 1 157 24 view .LVU64
+ 322 00e0 82ED014A 		vstr.32	s8, [r2, #4]
+ 158:Core/Src/app_calc.c ****   s_last_shear_mod_gpa = v->shear_modulus_GPa;
+ 323              		.loc 1 158 3 is_stmt 1 view .LVU65
+ 324              		.loc 1 158 27 is_stmt 0 view .LVU66
+ 325 00e4 D3ED0A5A 		vldr.32	s11, [r3, #40]
+ 326              		.loc 1 158 24 view .LVU67
+ 327 00e8 864A     		ldr	r2, .L54+8
+ 328 00ea C2ED005A 		vstr.32	s11, [r2]
+ 159:Core/Src/app_calc.c ****   s_last_elastic_mod_gpa = v->elastic_modulus_GPa;
+ 329              		.loc 1 159 3 is_stmt 1 view .LVU68
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 10
+
+
+ 330              		.loc 1 159 29 is_stmt 0 view .LVU69
+ 331 00ee 93ED0B6A 		vldr.32	s12, [r3, #44]
+ 332              		.loc 1 159 26 view .LVU70
+ 333 00f2 854A     		ldr	r2, .L54+12
+ 334 00f4 82ED006A 		vstr.32	s12, [r2]
+ 160:Core/Src/app_calc.c ****   s_last_poisson_ratio = v->poisson_ratio;
+ 335              		.loc 1 160 3 is_stmt 1 view .LVU71
+ 336              		.loc 1 160 27 is_stmt 0 view .LVU72
+ 337 00f8 D3ED0C6A 		vldr.32	s13, [r3, #48]
+ 338              		.loc 1 160 24 view .LVU73
+ 339 00fc 834A     		ldr	r2, .L54+16
+ 340 00fe C2ED006A 		vstr.32	s13, [r2]
+ 161:Core/Src/app_calc.c ****   s_last_outer_mm = v->shaft_outer_d_mm;
+ 341              		.loc 1 161 3 is_stmt 1 view .LVU74
+ 342              		.loc 1 161 22 is_stmt 0 view .LVU75
+ 343 0102 93ED087A 		vldr.32	s14, [r3, #32]
+ 344              		.loc 1 161 19 view .LVU76
+ 345 0106 824A     		ldr	r2, .L54+20
+ 346 0108 82ED007A 		vstr.32	s14, [r2]
+ 162:Core/Src/app_calc.c ****   s_last_inner_mm = v->shaft_inner_d_mm;
+ 347              		.loc 1 162 3 is_stmt 1 view .LVU77
+ 348              		.loc 1 162 22 is_stmt 0 view .LVU78
+ 349 010c D3ED097A 		vldr.32	s15, [r3, #36]
+ 350              		.loc 1 162 19 view .LVU79
+ 351 0110 804A     		ldr	r2, .L54+24
+ 352 0112 C2ED007A 		vstr.32	s15, [r2]
+ 163:Core/Src/app_calc.c ****   s_last_prop_dir = v->prop_dir;
+ 353              		.loc 1 163 3 is_stmt 1 view .LVU80
+ 354              		.loc 1 163 22 is_stmt 0 view .LVU81
+ 355 0116 998E     		ldrh	r1, [r3, #52]
+ 356              		.loc 1 163 19 view .LVU82
+ 357 0118 7F4A     		ldr	r2, .L54+28
+ 358 011a 1180     		strh	r1, [r2]	@ movhi
+ 164:Core/Src/app_calc.c ****   s_last_modulus_select = v->modulus_select;
+ 359              		.loc 1 164 3 is_stmt 1 view .LVU83
+ 360              		.loc 1 164 28 is_stmt 0 view .LVU84
+ 361 011c DA8E     		ldrh	r2, [r3, #54]
+ 362              		.loc 1 164 25 view .LVU85
+ 363 011e 7F48     		ldr	r0, .L54+32
+ 364              	.LVL20:
+ 365              		.loc 1 164 25 view .LVU86
+ 366 0120 0280     		strh	r2, [r0]	@ movhi
+ 165:Core/Src/app_calc.c **** 
+ 166:Core/Src/app_calc.c ****   s_strain_coeff[0] = ((v->calib_factor[0] != 0.0f) && (v->gauge_sensitivity[0] != 0.0f))
+ 367              		.loc 1 166 3 is_stmt 1 view .LVU87
+ 167:Core/Src/app_calc.c ****                         ? (1.0f / (v->calib_factor[0] * v->gauge_sensitivity[0])) : 0.0f;
+ 368              		.loc 1 167 83 is_stmt 0 view .LVU88
+ 369 0122 B5EE405A 		vcmp.f32	s10, #0
+ 370 0126 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 371 012a 11D0     		beq	.L32
+ 166:Core/Src/app_calc.c ****                         ? (1.0f / (v->calib_factor[0] * v->gauge_sensitivity[0])) : 0.0f;
+ 372              		.loc 1 166 53 view .LVU89
+ 373 012c F5EE403A 		vcmp.f32	s7, #0
+ 374 0130 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 375 0134 22D0     		beq	.L33
+ 376              		.loc 1 167 55 view .LVU90
+ 377 0136 25EE235A 		vmul.f32	s10, s10, s7
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 11
+
+
+ 378              		.loc 1 167 83 view .LVU91
+ 379 013a B7EE003A 		vmov.f32	s6, #1.0e+0
+ 380 013e C3EE053A 		vdiv.f32	s7, s6, s10
+ 381 0142 07E0     		b	.L12
+ 382              	.LVL21:
+ 383              	.L52:
+ 149:Core/Src/app_calc.c ****   {
+ 384              		.loc 1 149 9 view .LVU92
+ 385 0144 C18E     		ldrh	r1, [r0, #54]
+ 149:Core/Src/app_calc.c ****   {
+ 386              		.loc 1 149 26 view .LVU93
+ 387 0146 754A     		ldr	r2, .L54+32
+ 388 0148 1288     		ldrh	r2, [r2]
+ 148:Core/Src/app_calc.c ****       (v->modulus_select == s_last_modulus_select))
+ 389              		.loc 1 148 40 view .LVU94
+ 390 014a 9142     		cmp	r1, r2
+ 391 014c BAD1     		bne	.L11
+ 392 014e D3E0     		b	.L9
+ 393              	.LVL22:
+ 394              	.L32:
+ 395              		.loc 1 167 83 discriminator 1 view .LVU95
+ 396 0150 DFED733A 		vldr.32	s7, .L54+36
+ 397              	.L12:
+ 166:Core/Src/app_calc.c ****                         ? (1.0f / (v->calib_factor[0] * v->gauge_sensitivity[0])) : 0.0f;
+ 398              		.loc 1 166 21 view .LVU96
+ 399 0154 7348     		ldr	r0, .L54+40
+ 400 0156 C0ED003A 		vstr.32	s7, [r0]
+ 168:Core/Src/app_calc.c ****   s_strain_coeff[1] = ((v->calib_factor[1] != 0.0f) && (v->gauge_sensitivity[1] != 0.0f))
+ 401              		.loc 1 168 3 is_stmt 1 view .LVU97
+ 169:Core/Src/app_calc.c ****                         ? (2.0f / (v->calib_factor[1] * v->gauge_sensitivity[1])) : 0.0f;
+ 402              		.loc 1 169 83 is_stmt 0 view .LVU98
+ 403 015a F5EE404A 		vcmp.f32	s9, #0
+ 404 015e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 405 0162 0ED0     		beq	.L34
+ 168:Core/Src/app_calc.c ****   s_strain_coeff[1] = ((v->calib_factor[1] != 0.0f) && (v->gauge_sensitivity[1] != 0.0f))
+ 406              		.loc 1 168 53 view .LVU99
+ 407 0164 B5EE404A 		vcmp.f32	s8, #0
+ 408 0168 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 409 016c 1DD0     		beq	.L35
+ 410              		.loc 1 169 55 view .LVU100
+ 411 016e 64EE844A 		vmul.f32	s9, s9, s8
+ 412              		.loc 1 169 83 view .LVU101
+ 413 0172 B0EE004A 		vmov.f32	s8, #2.0e+0
+ 414 0176 84EE245A 		vdiv.f32	s10, s8, s9
+ 415 017a 04E0     		b	.L13
+ 416              	.L33:
+ 167:Core/Src/app_calc.c ****   s_strain_coeff[1] = ((v->calib_factor[1] != 0.0f) && (v->gauge_sensitivity[1] != 0.0f))
+ 417              		.loc 1 167 83 discriminator 1 view .LVU102
+ 418 017c DFED683A 		vldr.32	s7, .L54+36
+ 419 0180 E8E7     		b	.L12
+ 420              	.L34:
+ 421              		.loc 1 169 83 discriminator 1 view .LVU103
+ 422 0182 9FED675A 		vldr.32	s10, .L54+36
+ 423              	.L13:
+ 168:Core/Src/app_calc.c ****   s_strain_coeff[1] = ((v->calib_factor[1] != 0.0f) && (v->gauge_sensitivity[1] != 0.0f))
+ 424              		.loc 1 168 21 view .LVU104
+ 425 0186 6748     		ldr	r0, .L54+40
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 12
+
+
+ 426 0188 80ED015A 		vstr.32	s10, [r0, #4]
+ 170:Core/Src/app_calc.c **** 
+ 171:Core/Src/app_calc.c ****   denom = 2.0f * (1.0f + v->poisson_ratio);
+ 427              		.loc 1 171 3 is_stmt 1 view .LVU105
+ 428              		.loc 1 171 24 is_stmt 0 view .LVU106
+ 429 018c B7EE005A 		vmov.f32	s10, #1.0e+0
+ 430 0190 76EE856A 		vadd.f32	s13, s13, s10
+ 431              		.loc 1 171 9 view .LVU107
+ 432 0194 76EEA66A 		vadd.f32	s13, s13, s13
+ 433              	.LVL23:
+ 172:Core/Src/app_calc.c ****   if ((v->modulus_select == 0U) && (v->shear_modulus_GPa > 0.0f))
+ 434              		.loc 1 172 3 is_stmt 1 view .LVU108
+ 435              		.loc 1 172 6 is_stmt 0 view .LVU109
+ 436 0198 52B9     		cbnz	r2, .L14
+ 437              		.loc 1 172 33 discriminator 1 view .LVU110
+ 438 019a F5EEC05A 		vcmpe.f32	s11, #0
+ 439 019e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 440 01a2 05DD     		ble	.L14
+ 173:Core/Src/app_calc.c ****   {
+ 174:Core/Src/app_calc.c ****     g_gpa = v->shear_modulus_GPa;
+ 441              		.loc 1 174 5 is_stmt 1 view .LVU111
+ 442              	.LVL24:
+ 175:Core/Src/app_calc.c ****     e_gpa = g_gpa * denom;
+ 443              		.loc 1 175 5 view .LVU112
+ 444              		.loc 1 175 11 is_stmt 0 view .LVU113
+ 445 01a4 25EEA66A 		vmul.f32	s12, s11, s13
+ 446              	.LVL25:
+ 447              		.loc 1 175 11 view .LVU114
+ 448 01a8 08E0     		b	.L16
+ 449              	.LVL26:
+ 450              	.L35:
+ 169:Core/Src/app_calc.c **** 
+ 451              		.loc 1 169 83 discriminator 1 view .LVU115
+ 452 01aa 9FED5D5A 		vldr.32	s10, .L54+36
+ 453 01ae EAE7     		b	.L13
+ 454              	.LVL27:
+ 455              	.L14:
+ 176:Core/Src/app_calc.c ****   }
+ 177:Core/Src/app_calc.c ****   else if ((v->modulus_select == 1U) && (v->elastic_modulus_GPa > 0.0f))
+ 456              		.loc 1 177 8 is_stmt 1 view .LVU116
+ 457              		.loc 1 177 11 is_stmt 0 view .LVU117
+ 458 01b0 012A     		cmp	r2, #1
+ 459 01b2 63D0     		beq	.L53
+ 178:Core/Src/app_calc.c ****   {
+ 179:Core/Src/app_calc.c ****     e_gpa = v->elastic_modulus_GPa;
+ 180:Core/Src/app_calc.c ****     if (denom != 0.0f)
+ 181:Core/Src/app_calc.c ****     {
+ 182:Core/Src/app_calc.c ****       g_gpa = e_gpa / denom;
+ 183:Core/Src/app_calc.c ****     }
+ 184:Core/Src/app_calc.c ****     else
+ 185:Core/Src/app_calc.c ****     {
+ 186:Core/Src/app_calc.c ****       g_gpa = 0.0f;
+ 187:Core/Src/app_calc.c ****     }
+ 188:Core/Src/app_calc.c ****   }
+ 189:Core/Src/app_calc.c ****   else
+ 190:Core/Src/app_calc.c ****   {
+ 191:Core/Src/app_calc.c ****     g_gpa = 0.0f;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 13
+
+
+ 192:Core/Src/app_calc.c ****     e_gpa = 0.0f;
+ 460              		.loc 1 192 11 view .LVU118
+ 461 01b4 9FED5A6A 		vldr.32	s12, .L54+36
+ 191:Core/Src/app_calc.c ****     e_gpa = 0.0f;
+ 462              		.loc 1 191 11 view .LVU119
+ 463 01b8 F0EE465A 		vmov.f32	s11, s12
+ 464              	.L16:
+ 465              	.LVL28:
+ 193:Core/Src/app_calc.c ****   }
+ 194:Core/Src/app_calc.c ****   s_modulus_g_gpa = g_gpa;
+ 466              		.loc 1 194 3 is_stmt 1 view .LVU120
+ 467              		.loc 1 194 19 is_stmt 0 view .LVU121
+ 468 01bc 5A4A     		ldr	r2, .L54+44
+ 469 01be C2ED005A 		vstr.32	s11, [r2]
+ 195:Core/Src/app_calc.c ****   s_modulus_e_gpa = e_gpa;
+ 470              		.loc 1 195 3 is_stmt 1 view .LVU122
+ 471              		.loc 1 195 19 is_stmt 0 view .LVU123
+ 472 01c2 5A4A     		ldr	r2, .L54+48
+ 473 01c4 82ED006A 		vstr.32	s12, [r2]
+ 196:Core/Src/app_calc.c **** 
+ 197:Core/Src/app_calc.c ****   do_m = v->shaft_outer_d_mm * MM_TO_M;
+ 474              		.loc 1 197 3 is_stmt 1 view .LVU124
+ 475              		.loc 1 197 8 is_stmt 0 view .LVU125
+ 476 01c8 DFED596A 		vldr.32	s13, .L54+52
+ 477              	.LVL29:
+ 478              		.loc 1 197 8 view .LVU126
+ 479 01cc 27EE267A 		vmul.f32	s14, s14, s13
+ 480              	.LVL30:
+ 198:Core/Src/app_calc.c ****   di_m = v->shaft_inner_d_mm * MM_TO_M;
+ 481              		.loc 1 198 3 is_stmt 1 view .LVU127
+ 482              		.loc 1 198 8 is_stmt 0 view .LVU128
+ 483 01d0 67EEA67A 		vmul.f32	s15, s15, s13
+ 484              	.LVL31:
+ 199:Core/Src/app_calc.c ****   if ((do_m <= 0.0f) || (di_m < 0.0f))
+ 485              		.loc 1 199 3 is_stmt 1 view .LVU129
+ 486              		.loc 1 199 6 is_stmt 0 view .LVU130
+ 487 01d4 B5EEC07A 		vcmpe.f32	s14, #0
+ 488 01d8 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 489 01dc 63D9     		bls	.L18
+ 490              		.loc 1 199 22 discriminator 1 view .LVU131
+ 491 01de F5EEC07A 		vcmpe.f32	s15, #0
+ 492 01e2 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 493 01e6 5ED4     		bmi	.L18
+ 200:Core/Src/app_calc.c ****   {
+ 201:Core/Src/app_calc.c ****     s_torque_coeff = 0.0f;
+ 202:Core/Src/app_calc.c ****     s_thrust_coeff = 0.0f;
+ 203:Core/Src/app_calc.c ****     AppCalc_LogCoeffSnapshot(v);
+ 204:Core/Src/app_calc.c ****     return;
+ 205:Core/Src/app_calc.c ****   }
+ 206:Core/Src/app_calc.c ****   if (di_m >= do_m)
+ 494              		.loc 1 206 3 is_stmt 1 view .LVU132
+ 495              		.loc 1 206 6 is_stmt 0 view .LVU133
+ 496 01e8 B4EEE77A 		vcmpe.f32	s14, s15
+ 497 01ec F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 498 01f0 03D8     		bhi	.L21
+ 207:Core/Src/app_calc.c ****   {
+ 208:Core/Src/app_calc.c ****     di_m = do_m * 0.999f;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 14
+
+
+ 499              		.loc 1 208 5 is_stmt 1 view .LVU134
+ 500              		.loc 1 208 10 is_stmt 0 view .LVU135
+ 501 01f2 DFED507A 		vldr.32	s15, .L54+56
+ 502              	.LVL32:
+ 503              		.loc 1 208 10 view .LVU136
+ 504 01f6 67EE277A 		vmul.f32	s15, s14, s15
+ 505              	.LVL33:
+ 506              	.L21:
+ 209:Core/Src/app_calc.c ****   }
+ 210:Core/Src/app_calc.c **** 
+ 211:Core/Src/app_calc.c ****   g_pa = g_gpa * GPA_TO_PA;
+ 507              		.loc 1 211 3 is_stmt 1 view .LVU137
+ 508              		.loc 1 211 8 is_stmt 0 view .LVU138
+ 509 01fa DFED4F6A 		vldr.32	s13, .L54+60
+ 510 01fe 65EEA65A 		vmul.f32	s11, s11, s13
+ 511              	.LVL34:
+ 212:Core/Src/app_calc.c ****   d4 = do_m * do_m * do_m * do_m - di_m * di_m * di_m * di_m;
+ 512              		.loc 1 212 3 is_stmt 1 view .LVU139
+ 513              		.loc 1 212 13 is_stmt 0 view .LVU140
+ 514 0202 27EE075A 		vmul.f32	s10, s14, s14
+ 515              	.LVL35:
+ 516              		.loc 1 212 20 view .LVU141
+ 517 0206 65EE076A 		vmul.f32	s13, s10, s14
+ 518              		.loc 1 212 27 view .LVU142
+ 519 020a 66EE876A 		vmul.f32	s13, s13, s14
+ 520              		.loc 1 212 41 view .LVU143
+ 521 020e 27EEA74A 		vmul.f32	s8, s15, s15
+ 522              		.loc 1 212 48 view .LVU144
+ 523 0212 64EE274A 		vmul.f32	s9, s8, s15
+ 524              		.loc 1 212 55 view .LVU145
+ 525 0216 64EEA77A 		vmul.f32	s15, s9, s15
+ 526              	.LVL36:
+ 527              		.loc 1 212 6 view .LVU146
+ 528 021a 76EEE76A 		vsub.f32	s13, s13, s15
+ 529              	.LVL37:
+ 213:Core/Src/app_calc.c ****   d2 = do_m * do_m - di_m * di_m;
+ 530              		.loc 1 213 3 is_stmt 1 view .LVU147
+ 531              		.loc 1 213 6 is_stmt 0 view .LVU148
+ 532 021e 35EE445A 		vsub.f32	s10, s10, s8
+ 533              	.LVL38:
+ 214:Core/Src/app_calc.c ****   if ((g_pa <= 0.0f) || (d4 <= MIN_GEOM_EPS))
+ 534              		.loc 1 214 3 is_stmt 1 view .LVU149
+ 535              		.loc 1 214 6 is_stmt 0 view .LVU150
+ 536 0222 F5EEC05A 		vcmpe.f32	s11, #0
+ 537 0226 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 538 022a 06D9     		bls	.L23
+ 539              		.loc 1 214 22 discriminator 1 view .LVU151
+ 540 022c DFED437A 		vldr.32	s15, .L54+64
+ 541 0230 F4EEE76A 		vcmpe.f32	s13, s15
+ 542 0234 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 543 0238 3ED8     		bhi	.L47
+ 544              	.L23:
+ 215:Core/Src/app_calc.c ****   {
+ 216:Core/Src/app_calc.c ****     s_torque_coeff = 0.0f;
+ 545              		.loc 1 216 5 is_stmt 1 view .LVU152
+ 546              		.loc 1 216 20 is_stmt 0 view .LVU153
+ 547 023a 414A     		ldr	r2, .L54+68
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 15
+
+
+ 548 023c 0021     		movs	r1, #0
+ 549 023e 1160     		str	r1, [r2]	@ float
+ 550              	.LVL39:
+ 551              	.L26:
+ 217:Core/Src/app_calc.c ****   }
+ 218:Core/Src/app_calc.c ****   else
+ 219:Core/Src/app_calc.c ****   {
+ 220:Core/Src/app_calc.c ****     dir_sign = (v->prop_dir == 0U) ? -1.0f : 1.0f;
+ 221:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ 222:Core/Src/app_calc.c ****   }
+ 223:Core/Src/app_calc.c **** 
+ 224:Core/Src/app_calc.c ****   if ((s_modulus_e_gpa > 0.0f) && (d2 > MIN_GEOM_EPS))
+ 552              		.loc 1 224 3 is_stmt 1 view .LVU154
+ 553              		.loc 1 224 6 is_stmt 0 view .LVU155
+ 554 0240 B5EEC06A 		vcmpe.f32	s12, #0
+ 555 0244 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 556 0248 50DD     		ble	.L28
+ 557              		.loc 1 224 32 discriminator 1 view .LVU156
+ 558 024a DFED3C7A 		vldr.32	s15, .L54+64
+ 559 024e B4EEE75A 		vcmpe.f32	s10, s15
+ 560 0252 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 561 0256 49DD     		ble	.L28
+ 225:Core/Src/app_calc.c ****   {
+ 226:Core/Src/app_calc.c ****     s_thrust_coeff = s_modulus_e_gpa * GPA_TO_PA * PI_F * d2 / 4.0f;
+ 562              		.loc 1 226 5 is_stmt 1 view .LVU157
+ 563              		.loc 1 226 38 is_stmt 0 view .LVU158
+ 564 0258 DFED377A 		vldr.32	s15, .L54+60
+ 565              	.LVL40:
+ 566              		.loc 1 226 38 view .LVU159
+ 567 025c 66EE277A 		vmul.f32	s15, s12, s15
+ 568              	.LVL41:
+ 569              		.loc 1 226 50 view .LVU160
+ 570 0260 9FED387A 		vldr.32	s14, .L54+72
+ 571              	.LVL42:
+ 572              		.loc 1 226 50 view .LVU161
+ 573 0264 67EE877A 		vmul.f32	s15, s15, s14
+ 574              		.loc 1 226 57 view .LVU162
+ 575 0268 67EE857A 		vmul.f32	s15, s15, s10
+ 576              		.loc 1 226 62 view .LVU163
+ 577 026c B5EE007A 		vmov.f32	s14, #2.5e-1
+ 578 0270 67EE877A 		vmul.f32	s15, s15, s14
+ 579              		.loc 1 226 20 view .LVU164
+ 580 0274 344A     		ldr	r2, .L54+76
+ 581 0276 C2ED007A 		vstr.32	s15, [r2]
+ 582 027a 3AE0     		b	.L31
+ 583              	.LVL43:
+ 584              	.L53:
+ 177:Core/Src/app_calc.c ****   {
+ 585              		.loc 1 177 38 discriminator 1 view .LVU165
+ 586 027c B5EEC06A 		vcmpe.f32	s12, #0
+ 587 0280 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 588 0284 07DD     		ble	.L45
+ 179:Core/Src/app_calc.c ****     if (denom != 0.0f)
+ 589              		.loc 1 179 5 is_stmt 1 view .LVU166
+ 590              	.LVL44:
+ 180:Core/Src/app_calc.c ****     {
+ 591              		.loc 1 180 5 view .LVU167
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 16
+
+
+ 180:Core/Src/app_calc.c ****     {
+ 592              		.loc 1 180 8 is_stmt 0 view .LVU168
+ 593 0286 F5EE406A 		vcmp.f32	s13, #0
+ 594 028a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 595 028e 07D0     		beq	.L38
+ 182:Core/Src/app_calc.c ****     }
+ 596              		.loc 1 182 7 is_stmt 1 view .LVU169
+ 182:Core/Src/app_calc.c ****     }
+ 597              		.loc 1 182 13 is_stmt 0 view .LVU170
+ 598 0290 C6EE265A 		vdiv.f32	s11, s12, s13
+ 599              	.LVL45:
+ 182:Core/Src/app_calc.c ****     }
+ 600              		.loc 1 182 13 view .LVU171
+ 601 0294 92E7     		b	.L16
+ 602              	.LVL46:
+ 603              	.L45:
+ 192:Core/Src/app_calc.c ****   }
+ 604              		.loc 1 192 11 view .LVU172
+ 605 0296 9FED226A 		vldr.32	s12, .L54+36
+ 191:Core/Src/app_calc.c ****     e_gpa = 0.0f;
+ 606              		.loc 1 191 11 view .LVU173
+ 607 029a F0EE465A 		vmov.f32	s11, s12
+ 608 029e 8DE7     		b	.L16
+ 609              	.LVL47:
+ 610              	.L38:
+ 186:Core/Src/app_calc.c ****     }
+ 611              		.loc 1 186 13 view .LVU174
+ 612 02a0 DFED1F5A 		vldr.32	s11, .L54+36
+ 613 02a4 8AE7     		b	.L16
+ 614              	.LVL48:
+ 615              	.L18:
+ 201:Core/Src/app_calc.c ****     s_thrust_coeff = 0.0f;
+ 616              		.loc 1 201 5 is_stmt 1 view .LVU175
+ 201:Core/Src/app_calc.c ****     s_thrust_coeff = 0.0f;
+ 617              		.loc 1 201 20 is_stmt 0 view .LVU176
+ 618 02a6 0022     		movs	r2, #0
+ 619 02a8 2549     		ldr	r1, .L54+68
+ 620 02aa 0A60     		str	r2, [r1]	@ float
+ 202:Core/Src/app_calc.c ****     AppCalc_LogCoeffSnapshot(v);
+ 621              		.loc 1 202 5 is_stmt 1 view .LVU177
+ 202:Core/Src/app_calc.c ****     AppCalc_LogCoeffSnapshot(v);
+ 622              		.loc 1 202 20 is_stmt 0 view .LVU178
+ 623 02ac 2649     		ldr	r1, .L54+76
+ 624 02ae 0A60     		str	r2, [r1]	@ float
+ 203:Core/Src/app_calc.c ****     return;
+ 625              		.loc 1 203 5 is_stmt 1 view .LVU179
+ 626 02b0 1846     		mov	r0, r3
+ 627 02b2 FFF7FEFF 		bl	AppCalc_LogCoeffSnapshot
+ 628              	.LVL49:
+ 204:Core/Src/app_calc.c ****   }
+ 629              		.loc 1 204 5 view .LVU180
+ 630 02b6 1FE0     		b	.L9
+ 631              	.LVL50:
+ 632              	.L47:
+ 220:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ 633              		.loc 1 220 5 view .LVU181
+ 220:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 17
+
+
+ 634              		.loc 1 220 44 is_stmt 0 view .LVU182
+ 635 02b8 A9B9     		cbnz	r1, .L39
+ 220:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ 636              		.loc 1 220 44 discriminator 1 view .LVU183
+ 637 02ba FFEE007A 		vmov.f32	s15, #-1.0e+0
+ 638              	.L27:
+ 639              	.LVL51:
+ 221:Core/Src/app_calc.c ****   }
+ 640              		.loc 1 221 5 is_stmt 1 view .LVU184
+ 221:Core/Src/app_calc.c ****   }
+ 641              		.loc 1 221 31 is_stmt 0 view .LVU185
+ 642 02be 77EEA77A 		vadd.f32	s15, s15, s15
+ 643              	.LVL52:
+ 221:Core/Src/app_calc.c ****   }
+ 644              		.loc 1 221 38 view .LVU186
+ 645 02c2 67EEA57A 		vmul.f32	s15, s15, s11
+ 221:Core/Src/app_calc.c ****   }
+ 646              		.loc 1 221 45 view .LVU187
+ 647 02c6 DFED1F5A 		vldr.32	s11, .L54+72
+ 648              	.LVL53:
+ 221:Core/Src/app_calc.c ****   }
+ 649              		.loc 1 221 45 view .LVU188
+ 650 02ca 67EEA57A 		vmul.f32	s15, s15, s11
+ 221:Core/Src/app_calc.c ****   }
+ 651              		.loc 1 221 52 view .LVU189
+ 652 02ce 67EEA67A 		vmul.f32	s15, s15, s13
+ 221:Core/Src/app_calc.c ****   }
+ 653              		.loc 1 221 57 view .LVU190
+ 654 02d2 C7EE876A 		vdiv.f32	s13, s15, s14
+ 655              	.LVL54:
+ 221:Core/Src/app_calc.c ****   }
+ 656              		.loc 1 221 64 view .LVU191
+ 657 02d6 DFED1D7A 		vldr.32	s15, .L54+80
+ 658 02da 66EEA77A 		vmul.f32	s15, s13, s15
+ 221:Core/Src/app_calc.c ****   }
+ 659              		.loc 1 221 20 view .LVU192
+ 660 02de 184A     		ldr	r2, .L54+68
+ 661 02e0 C2ED007A 		vstr.32	s15, [r2]
+ 662 02e4 ACE7     		b	.L26
+ 663              	.LVL55:
+ 664              	.L39:
+ 220:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ 665              		.loc 1 220 44 discriminator 2 view .LVU193
+ 666 02e6 F7EE007A 		vmov.f32	s15, #1.0e+0
+ 667              	.LVL56:
+ 220:Core/Src/app_calc.c ****     s_torque_coeff = dir_sign * 2.0f * g_pa * PI_F * d4 / do_m / 16.0f;
+ 668              		.loc 1 220 44 discriminator 2 view .LVU194
+ 669 02ea E8E7     		b	.L27
+ 670              	.LVL57:
+ 671              	.L28:
+ 227:Core/Src/app_calc.c ****   }
+ 228:Core/Src/app_calc.c ****   else
+ 229:Core/Src/app_calc.c ****   {
+ 230:Core/Src/app_calc.c ****     s_thrust_coeff = 0.0f;
+ 672              		.loc 1 230 5 is_stmt 1 view .LVU195
+ 673              		.loc 1 230 20 is_stmt 0 view .LVU196
+ 674 02ec 164A     		ldr	r2, .L54+76
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 18
+
+
+ 675 02ee 0021     		movs	r1, #0
+ 676 02f0 1160     		str	r1, [r2]	@ float
+ 677              	.LVL58:
+ 678              	.L31:
+ 231:Core/Src/app_calc.c ****   }
+ 232:Core/Src/app_calc.c **** 
+ 233:Core/Src/app_calc.c ****   AppCalc_LogCoeffSnapshot(v);
+ 679              		.loc 1 233 3 is_stmt 1 view .LVU197
+ 680 02f2 1846     		mov	r0, r3
+ 681 02f4 FFF7FEFF 		bl	AppCalc_LogCoeffSnapshot
+ 682              	.LVL59:
+ 683              	.L9:
+ 234:Core/Src/app_calc.c **** }
+ 684              		.loc 1 234 1 is_stmt 0 view .LVU198
+ 685 02f8 08BD     		pop	{r3, pc}
+ 686              	.LVL60:
+ 687              	.L49:
+ 688              	.LCFI5:
+ 689              		.cfi_def_cfa_offset 0
+ 690              		.cfi_restore 3
+ 691              		.cfi_restore 14
+ 692              		.loc 1 234 1 view .LVU199
+ 693 02fa 7047     		bx	lr
+ 694              	.L55:
+ 695              		.align	2
+ 696              	.L54:
+ 697 02fc 00000000 		.word	s_last_calib_factor
+ 698 0300 00000000 		.word	s_last_gauge_sens
+ 699 0304 00000000 		.word	s_last_shear_mod_gpa
+ 700 0308 00000000 		.word	s_last_elastic_mod_gpa
+ 701 030c 00000000 		.word	s_last_poisson_ratio
+ 702 0310 00000000 		.word	s_last_outer_mm
+ 703 0314 00000000 		.word	s_last_inner_mm
+ 704 0318 00000000 		.word	s_last_prop_dir
+ 705 031c 00000000 		.word	s_last_modulus_select
+ 706 0320 00000000 		.word	0
+ 707 0324 00000000 		.word	s_strain_coeff
+ 708 0328 00000000 		.word	s_modulus_g_gpa
+ 709 032c 00000000 		.word	s_modulus_e_gpa
+ 710 0330 6F12833A 		.word	981668463
+ 711 0334 77BE7F3F 		.word	1065336439
+ 712 0338 286B6E4E 		.word	1315859240
+ 713 033c 5F708930 		.word	814313567
+ 714 0340 00000000 		.word	s_torque_coeff
+ 715 0344 DB0F4940 		.word	1078530011
+ 716 0348 00000000 		.word	s_thrust_coeff
+ 717 034c 0000803D 		.word	1031798784
+ 718              		.cfi_endproc
+ 719              	.LFE246:
+ 721              		.section	.text.AppCalc_RecomputeCoeffs,"ax",%progbits
+ 722              		.align	1
+ 723              		.global	AppCalc_RecomputeCoeffs
+ 724              		.syntax unified
+ 725              		.thumb
+ 726              		.thumb_func
+ 728              	AppCalc_RecomputeCoeffs:
+ 729              	.LVL61:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 19
+
+
+ 730              	.LFB247:
+ 235:Core/Src/app_calc.c **** 
+ 236:Core/Src/app_calc.c **** void AppCalc_RecomputeCoeffs(const protocol_values_t *values)
+ 237:Core/Src/app_calc.c **** {
+ 731              		.loc 1 237 1 is_stmt 1 view -0
+ 732              		.cfi_startproc
+ 733              		@ args = 0, pretend = 0, frame = 0
+ 734              		@ frame_needed = 0, uses_anonymous_args = 0
+ 735              		.loc 1 237 1 is_stmt 0 view .LVU201
+ 736 0000 08B5     		push	{r3, lr}
+ 737              	.LCFI6:
+ 738              		.cfi_def_cfa_offset 8
+ 739              		.cfi_offset 3, -8
+ 740              		.cfi_offset 14, -4
+ 238:Core/Src/app_calc.c ****   AppCalc_UpdateCoeffs(values);
+ 741              		.loc 1 238 3 is_stmt 1 view .LVU202
+ 742 0002 FFF7FEFF 		bl	AppCalc_UpdateCoeffs
+ 743              	.LVL62:
+ 239:Core/Src/app_calc.c **** }
+ 744              		.loc 1 239 1 is_stmt 0 view .LVU203
+ 745 0006 08BD     		pop	{r3, pc}
+ 746              		.cfi_endproc
+ 747              	.LFE247:
+ 749              		.section	.text.AppCalc_Init,"ax",%progbits
+ 750              		.align	1
+ 751              		.global	AppCalc_Init
+ 752              		.syntax unified
+ 753              		.thumb
+ 754              		.thumb_func
+ 756              	AppCalc_Init:
+ 757              	.LVL63:
+ 758              	.LFB248:
+ 240:Core/Src/app_calc.c **** 
+ 241:Core/Src/app_calc.c **** void AppCalc_Init(const app_calc_ctx_t *ctx)
+ 242:Core/Src/app_calc.c **** {
+ 759              		.loc 1 242 1 is_stmt 1 view -0
+ 760              		.cfi_startproc
+ 761              		@ args = 0, pretend = 0, frame = 0
+ 762              		@ frame_needed = 0, uses_anonymous_args = 0
+ 763              		.loc 1 242 1 is_stmt 0 view .LVU205
+ 764 0000 08B5     		push	{r3, lr}
+ 765              	.LCFI7:
+ 766              		.cfi_def_cfa_offset 8
+ 767              		.cfi_offset 3, -8
+ 768              		.cfi_offset 14, -4
+ 243:Core/Src/app_calc.c ****   (void)ctx;
+ 769              		.loc 1 243 3 is_stmt 1 view .LVU206
+ 244:Core/Src/app_calc.c ****   memset((void *)&s_calc_accum, 0, sizeof(s_calc_accum));
+ 770              		.loc 1 244 3 view .LVU207
+ 771 0002 3022     		movs	r2, #48
+ 772 0004 0021     		movs	r1, #0
+ 773 0006 1E48     		ldr	r0, .L60
+ 774              	.LVL64:
+ 775              		.loc 1 244 3 is_stmt 0 view .LVU208
+ 776 0008 FFF7FEFF 		bl	memset
+ 777              	.LVL65:
+ 245:Core/Src/app_calc.c ****   s_zero_collecting = 0U;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 20
+
+
+ 778              		.loc 1 245 3 is_stmt 1 view .LVU209
+ 779              		.loc 1 245 21 is_stmt 0 view .LVU210
+ 780 000c 0021     		movs	r1, #0
+ 781 000e 1D4B     		ldr	r3, .L60+4
+ 782 0010 1970     		strb	r1, [r3]
+ 246:Core/Src/app_calc.c ****   s_zero_sum_ch1 = 0.0;
+ 783              		.loc 1 246 3 is_stmt 1 view .LVU211
+ 784              		.loc 1 246 18 is_stmt 0 view .LVU212
+ 785 0012 0022     		movs	r2, #0
+ 786 0014 0023     		movs	r3, #0
+ 787 0016 1C48     		ldr	r0, .L60+8
+ 788 0018 C0E90023 		strd	r2, [r0]
+ 247:Core/Src/app_calc.c ****   s_zero_sum_ch2 = 0.0;
+ 789              		.loc 1 247 3 is_stmt 1 view .LVU213
+ 790              		.loc 1 247 18 is_stmt 0 view .LVU214
+ 791 001c 1B48     		ldr	r0, .L60+12
+ 792 001e C0E90023 		strd	r2, [r0]
+ 248:Core/Src/app_calc.c ****   s_zero_sq_sum_ch1 = 0.0;
+ 793              		.loc 1 248 3 is_stmt 1 view .LVU215
+ 794              		.loc 1 248 21 is_stmt 0 view .LVU216
+ 795 0022 1B48     		ldr	r0, .L60+16
+ 796 0024 C0E90023 		strd	r2, [r0]
+ 249:Core/Src/app_calc.c ****   s_zero_sq_sum_ch2 = 0.0;
+ 797              		.loc 1 249 3 is_stmt 1 view .LVU217
+ 798              		.loc 1 249 21 is_stmt 0 view .LVU218
+ 799 0028 1A48     		ldr	r0, .L60+20
+ 800 002a C0E90023 		strd	r2, [r0]
+ 250:Core/Src/app_calc.c ****   s_zero_count = 0U;
+ 801              		.loc 1 250 3 is_stmt 1 view .LVU219
+ 802              		.loc 1 250 16 is_stmt 0 view .LVU220
+ 803 002e 1A4B     		ldr	r3, .L60+24
+ 804 0030 1960     		str	r1, [r3]
+ 251:Core/Src/app_calc.c ****   s_zero_avg_mode = 0U;
+ 805              		.loc 1 251 3 is_stmt 1 view .LVU221
+ 806              		.loc 1 251 19 is_stmt 0 view .LVU222
+ 807 0032 1A4B     		ldr	r3, .L60+28
+ 808 0034 1980     		strh	r1, [r3]	@ movhi
+ 252:Core/Src/app_calc.c ****   s_strain_coeff[0] = 1.0f;
+ 809              		.loc 1 252 3 is_stmt 1 view .LVU223
+ 810              		.loc 1 252 21 is_stmt 0 view .LVU224
+ 811 0036 1A4B     		ldr	r3, .L60+32
+ 812 0038 4FF07E52 		mov	r2, #1065353216
+ 813 003c 1A60     		str	r2, [r3]	@ float
+ 253:Core/Src/app_calc.c ****   s_strain_coeff[1] = 1.0f;
+ 814              		.loc 1 253 3 is_stmt 1 view .LVU225
+ 815              		.loc 1 253 21 is_stmt 0 view .LVU226
+ 816 003e 5A60     		str	r2, [r3, #4]	@ float
+ 254:Core/Src/app_calc.c ****   s_torque_coeff = 0.0f;
+ 817              		.loc 1 254 3 is_stmt 1 view .LVU227
+ 818              		.loc 1 254 18 is_stmt 0 view .LVU228
+ 819 0040 0023     		movs	r3, #0
+ 820 0042 184A     		ldr	r2, .L60+36
+ 821 0044 1360     		str	r3, [r2]	@ float
+ 255:Core/Src/app_calc.c ****   s_thrust_coeff = 0.0f;
+ 822              		.loc 1 255 3 is_stmt 1 view .LVU229
+ 823              		.loc 1 255 18 is_stmt 0 view .LVU230
+ 824 0046 184A     		ldr	r2, .L60+40
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 21
+
+
+ 825 0048 1360     		str	r3, [r2]	@ float
+ 256:Core/Src/app_calc.c ****   s_last_calib_factor[0] = 0.0f;
+ 826              		.loc 1 256 3 is_stmt 1 view .LVU231
+ 827              		.loc 1 256 26 is_stmt 0 view .LVU232
+ 828 004a 184A     		ldr	r2, .L60+44
+ 829 004c 1360     		str	r3, [r2]	@ float
+ 257:Core/Src/app_calc.c ****   s_last_calib_factor[1] = 0.0f;
+ 830              		.loc 1 257 3 is_stmt 1 view .LVU233
+ 831              		.loc 1 257 26 is_stmt 0 view .LVU234
+ 832 004e 5360     		str	r3, [r2, #4]	@ float
+ 258:Core/Src/app_calc.c ****   s_last_gauge_sens[0] = 0.0f;
+ 833              		.loc 1 258 3 is_stmt 1 view .LVU235
+ 834              		.loc 1 258 24 is_stmt 0 view .LVU236
+ 835 0050 174A     		ldr	r2, .L60+48
+ 836 0052 1360     		str	r3, [r2]	@ float
+ 259:Core/Src/app_calc.c ****   s_last_gauge_sens[1] = 0.0f;
+ 837              		.loc 1 259 3 is_stmt 1 view .LVU237
+ 838              		.loc 1 259 24 is_stmt 0 view .LVU238
+ 839 0054 5360     		str	r3, [r2, #4]	@ float
+ 260:Core/Src/app_calc.c ****   s_last_shear_mod_gpa = 0.0f;
+ 840              		.loc 1 260 3 is_stmt 1 view .LVU239
+ 841              		.loc 1 260 24 is_stmt 0 view .LVU240
+ 842 0056 174A     		ldr	r2, .L60+52
+ 843 0058 1360     		str	r3, [r2]	@ float
+ 261:Core/Src/app_calc.c ****   s_last_elastic_mod_gpa = 0.0f;
+ 844              		.loc 1 261 3 is_stmt 1 view .LVU241
+ 845              		.loc 1 261 26 is_stmt 0 view .LVU242
+ 846 005a 174A     		ldr	r2, .L60+56
+ 847 005c 1360     		str	r3, [r2]	@ float
+ 262:Core/Src/app_calc.c ****   s_last_poisson_ratio = 0.0f;
+ 848              		.loc 1 262 3 is_stmt 1 view .LVU243
+ 849              		.loc 1 262 24 is_stmt 0 view .LVU244
+ 850 005e 174A     		ldr	r2, .L60+60
+ 851 0060 1360     		str	r3, [r2]	@ float
+ 263:Core/Src/app_calc.c ****   s_last_outer_mm = 0.0f;
+ 852              		.loc 1 263 3 is_stmt 1 view .LVU245
+ 853              		.loc 1 263 19 is_stmt 0 view .LVU246
+ 854 0062 174A     		ldr	r2, .L60+64
+ 855 0064 1360     		str	r3, [r2]	@ float
+ 264:Core/Src/app_calc.c ****   s_last_inner_mm = 0.0f;
+ 856              		.loc 1 264 3 is_stmt 1 view .LVU247
+ 857              		.loc 1 264 19 is_stmt 0 view .LVU248
+ 858 0066 174A     		ldr	r2, .L60+68
+ 859 0068 1360     		str	r3, [r2]	@ float
+ 265:Core/Src/app_calc.c ****   s_last_prop_dir = 0xFFFFU;
+ 860              		.loc 1 265 3 is_stmt 1 view .LVU249
+ 861              		.loc 1 265 19 is_stmt 0 view .LVU250
+ 862 006a 4FF6FF72 		movw	r2, #65535
+ 863 006e 1649     		ldr	r1, .L60+72
+ 864 0070 0A80     		strh	r2, [r1]	@ movhi
+ 266:Core/Src/app_calc.c ****   s_last_modulus_select = 0xFFFFU;
+ 865              		.loc 1 266 3 is_stmt 1 view .LVU251
+ 866              		.loc 1 266 25 is_stmt 0 view .LVU252
+ 867 0072 1649     		ldr	r1, .L60+76
+ 868 0074 0A80     		strh	r2, [r1]	@ movhi
+ 267:Core/Src/app_calc.c ****   s_modulus_g_gpa = 0.0f;
+ 869              		.loc 1 267 3 is_stmt 1 view .LVU253
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 22
+
+
+ 870              		.loc 1 267 19 is_stmt 0 view .LVU254
+ 871 0076 164A     		ldr	r2, .L60+80
+ 872 0078 1360     		str	r3, [r2]	@ float
+ 268:Core/Src/app_calc.c ****   s_modulus_e_gpa = 0.0f;
+ 873              		.loc 1 268 3 is_stmt 1 view .LVU255
+ 874              		.loc 1 268 19 is_stmt 0 view .LVU256
+ 875 007a 164A     		ldr	r2, .L60+84
+ 876 007c 1360     		str	r3, [r2]	@ float
+ 269:Core/Src/app_calc.c **** }
+ 877              		.loc 1 269 1 view .LVU257
+ 878 007e 08BD     		pop	{r3, pc}
+ 879              	.L61:
+ 880              		.align	2
+ 881              	.L60:
+ 882 0080 00000000 		.word	s_calc_accum
+ 883 0084 00000000 		.word	s_zero_collecting
+ 884 0088 00000000 		.word	s_zero_sum_ch1
+ 885 008c 00000000 		.word	s_zero_sum_ch2
+ 886 0090 00000000 		.word	s_zero_sq_sum_ch1
+ 887 0094 00000000 		.word	s_zero_sq_sum_ch2
+ 888 0098 00000000 		.word	s_zero_count
+ 889 009c 00000000 		.word	s_zero_avg_mode
+ 890 00a0 00000000 		.word	s_strain_coeff
+ 891 00a4 00000000 		.word	s_torque_coeff
+ 892 00a8 00000000 		.word	s_thrust_coeff
+ 893 00ac 00000000 		.word	s_last_calib_factor
+ 894 00b0 00000000 		.word	s_last_gauge_sens
+ 895 00b4 00000000 		.word	s_last_shear_mod_gpa
+ 896 00b8 00000000 		.word	s_last_elastic_mod_gpa
+ 897 00bc 00000000 		.word	s_last_poisson_ratio
+ 898 00c0 00000000 		.word	s_last_outer_mm
+ 899 00c4 00000000 		.word	s_last_inner_mm
+ 900 00c8 00000000 		.word	s_last_prop_dir
+ 901 00cc 00000000 		.word	s_last_modulus_select
+ 902 00d0 00000000 		.word	s_modulus_g_gpa
+ 903 00d4 00000000 		.word	s_modulus_e_gpa
+ 904              		.cfi_endproc
+ 905              	.LFE248:
+ 907              		.global	__aeabi_dadd
+ 908              		.global	__aeabi_dmul
+ 909              		.section	.text.AppCalc_FeedSample,"ax",%progbits
+ 910              		.align	1
+ 911              		.global	AppCalc_FeedSample
+ 912              		.syntax unified
+ 913              		.thumb
+ 914              		.thumb_func
+ 916              	AppCalc_FeedSample:
+ 917              	.LVL66:
+ 918              	.LFB249:
+ 270:Core/Src/app_calc.c **** 
+ 271:Core/Src/app_calc.c **** void AppCalc_FeedSample(float ch1, float ch2)
+ 272:Core/Src/app_calc.c **** {
+ 919              		.loc 1 272 1 is_stmt 1 view -0
+ 920              		.cfi_startproc
+ 921              		@ args = 0, pretend = 0, frame = 8
+ 922              		@ frame_needed = 0, uses_anonymous_args = 0
+ 923              		.loc 1 272 1 is_stmt 0 view .LVU259
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 23
+
+
+ 924 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 925              	.LCFI8:
+ 926              		.cfi_def_cfa_offset 32
+ 927              		.cfi_offset 4, -32
+ 928              		.cfi_offset 5, -28
+ 929              		.cfi_offset 6, -24
+ 930              		.cfi_offset 7, -20
+ 931              		.cfi_offset 8, -16
+ 932              		.cfi_offset 9, -12
+ 933              		.cfi_offset 10, -8
+ 934              		.cfi_offset 14, -4
+ 935 0004 2DED028B 		vpush.64	{d8}
+ 936              	.LCFI9:
+ 937              		.cfi_def_cfa_offset 40
+ 938              		.cfi_offset 80, -40
+ 939              		.cfi_offset 81, -36
+ 940 0008 82B0     		sub	sp, sp, #8
+ 941              	.LCFI10:
+ 942              		.cfi_def_cfa_offset 48
+ 943 000a 10EE105A 		vmov	r5, s0
+ 944 000e 10EE904A 		vmov	r4, s1
+ 273:Core/Src/app_calc.c ****   taskENTER_CRITICAL();
+ 945              		.loc 1 273 3 is_stmt 1 view .LVU260
+ 946 0012 FFF7FEFF 		bl	vPortEnterCritical
+ 947              	.LVL67:
+ 274:Core/Src/app_calc.c ****   s_calc_accum.ch1_sum += (double)ch1;
+ 948              		.loc 1 274 3 view .LVU261
+ 949              		.loc 1 274 15 is_stmt 0 view .LVU262
+ 950 0016 DFF80CA1 		ldr	r10, .L65+20
+ 951 001a DAE90089 		ldrd	r8, [r10]
+ 952              		.loc 1 274 27 view .LVU263
+ 953 001e 2846     		mov	r0, r5	@ float
+ 954 0020 FFF7FEFF 		bl	__aeabi_f2d
+ 955              	.LVL68:
+ 956 0024 0646     		mov	r6, r0
+ 957 0026 0F46     		mov	r7, r1
+ 958              		.loc 1 274 24 view .LVU264
+ 959 0028 0246     		mov	r2, r0
+ 960 002a 0B46     		mov	r3, r1
+ 961 002c 4046     		mov	r0, r8
+ 962 002e 4946     		mov	r1, r9
+ 963 0030 FFF7FEFF 		bl	__aeabi_dadd
+ 964              	.LVL69:
+ 965 0034 CAE90001 		strd	r0, [r10]
+ 275:Core/Src/app_calc.c ****   s_calc_accum.ch2_sum += (double)ch2;
+ 966              		.loc 1 275 3 is_stmt 1 view .LVU265
+ 967              		.loc 1 275 15 is_stmt 0 view .LVU266
+ 968 0038 DAE90289 		ldrd	r8, [r10, #8]
+ 969              		.loc 1 275 27 view .LVU267
+ 970 003c 2046     		mov	r0, r4	@ float
+ 971 003e FFF7FEFF 		bl	__aeabi_f2d
+ 972              	.LVL70:
+ 973 0042 0446     		mov	r4, r0
+ 974              	.LVL71:
+ 975              		.loc 1 275 27 view .LVU268
+ 976 0044 0D46     		mov	r5, r1
+ 977              	.LVL72:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 24
+
+
+ 978              		.loc 1 275 24 view .LVU269
+ 979 0046 0246     		mov	r2, r0
+ 980 0048 0B46     		mov	r3, r1
+ 981 004a 4046     		mov	r0, r8
+ 982 004c 4946     		mov	r1, r9
+ 983 004e FFF7FEFF 		bl	__aeabi_dadd
+ 984              	.LVL73:
+ 985 0052 CAE90201 		strd	r0, [r10, #8]
+ 276:Core/Src/app_calc.c ****   s_calc_accum.ch1_sq_sum += (double)ch1 * (double)ch1;
+ 986              		.loc 1 276 3 is_stmt 1 view .LVU270
+ 987              		.loc 1 276 15 is_stmt 0 view .LVU271
+ 988 0056 DAE90489 		ldrd	r8, [r10, #16]
+ 989              		.loc 1 276 42 view .LVU272
+ 990 005a 3246     		mov	r2, r6
+ 991 005c 3B46     		mov	r3, r7
+ 992 005e 3046     		mov	r0, r6
+ 993 0060 3946     		mov	r1, r7
+ 994 0062 FFF7FEFF 		bl	__aeabi_dmul
+ 995              	.LVL74:
+ 996              		.loc 1 276 27 view .LVU273
+ 997 0066 CDE90001 		strd	r0, [sp]
+ 998 006a 0246     		mov	r2, r0
+ 999 006c 0B46     		mov	r3, r1
+ 1000 006e 4046     		mov	r0, r8
+ 1001 0070 4946     		mov	r1, r9
+ 1002 0072 FFF7FEFF 		bl	__aeabi_dadd
+ 1003              	.LVL75:
+ 1004 0076 CAE90401 		strd	r0, [r10, #16]
+ 277:Core/Src/app_calc.c ****   s_calc_accum.ch2_sq_sum += (double)ch2 * (double)ch2;
+ 1005              		.loc 1 277 3 is_stmt 1 view .LVU274
+ 1006              		.loc 1 277 15 is_stmt 0 view .LVU275
+ 1007 007a 9AED068B 		vldr.64	d8, [r10, #24]
+ 1008              		.loc 1 277 42 view .LVU276
+ 1009 007e 2246     		mov	r2, r4
+ 1010 0080 2B46     		mov	r3, r5
+ 1011 0082 2046     		mov	r0, r4
+ 1012 0084 2946     		mov	r1, r5
+ 1013 0086 FFF7FEFF 		bl	__aeabi_dmul
+ 1014              	.LVL76:
+ 1015 008a 8046     		mov	r8, r0
+ 1016 008c 8946     		mov	r9, r1
+ 1017              		.loc 1 277 27 view .LVU277
+ 1018 008e 0246     		mov	r2, r0
+ 1019 0090 0B46     		mov	r3, r1
+ 1020 0092 51EC180B 		vmov	r0, r1, d8
+ 1021 0096 FFF7FEFF 		bl	__aeabi_dadd
+ 1022              	.LVL77:
+ 1023 009a CAE90601 		strd	r0, [r10, #24]
+ 278:Core/Src/app_calc.c ****   s_calc_accum.sample_count++;
+ 1024              		.loc 1 278 3 is_stmt 1 view .LVU278
+ 1025              		.loc 1 278 15 is_stmt 0 view .LVU279
+ 1026 009e DAF82430 		ldr	r3, [r10, #36]
+ 1027              		.loc 1 278 28 view .LVU280
+ 1028 00a2 0133     		adds	r3, r3, #1
+ 1029 00a4 CAF82430 		str	r3, [r10, #36]
+ 279:Core/Src/app_calc.c **** 
+ 280:Core/Src/app_calc.c ****   if (s_zero_collecting != 0U)
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 25
+
+
+ 1030              		.loc 1 280 3 is_stmt 1 view .LVU281
+ 1031              		.loc 1 280 25 is_stmt 0 view .LVU282
+ 1032 00a8 194B     		ldr	r3, .L65
+ 1033 00aa 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1034              		.loc 1 280 6 view .LVU283
+ 1035 00ac 002B     		cmp	r3, #0
+ 1036 00ae 28D0     		beq	.L63
+ 281:Core/Src/app_calc.c ****   {
+ 282:Core/Src/app_calc.c ****     s_zero_sum_ch1 += (double)ch1;
+ 1037              		.loc 1 282 5 is_stmt 1 view .LVU284
+ 1038              		.loc 1 282 20 is_stmt 0 view .LVU285
+ 1039 00b0 DFF874A0 		ldr	r10, .L65+24
+ 1040 00b4 3246     		mov	r2, r6
+ 1041 00b6 3B46     		mov	r3, r7
+ 1042 00b8 DAE90001 		ldrd	r0, [r10]
+ 1043 00bc FFF7FEFF 		bl	__aeabi_dadd
+ 1044              	.LVL78:
+ 1045 00c0 CAE90001 		strd	r0, [r10]
+ 283:Core/Src/app_calc.c ****     s_zero_sum_ch2 += (double)ch2;
+ 1046              		.loc 1 283 5 is_stmt 1 view .LVU286
+ 1047              		.loc 1 283 20 is_stmt 0 view .LVU287
+ 1048 00c4 134E     		ldr	r6, .L65+4
+ 1049 00c6 2246     		mov	r2, r4
+ 1050 00c8 2B46     		mov	r3, r5
+ 1051 00ca D6E90001 		ldrd	r0, [r6]
+ 1052 00ce FFF7FEFF 		bl	__aeabi_dadd
+ 1053              	.LVL79:
+ 1054 00d2 C6E90001 		strd	r0, [r6]
+ 284:Core/Src/app_calc.c ****     s_zero_sq_sum_ch1 += (double)ch1 * (double)ch1;
+ 1055              		.loc 1 284 5 is_stmt 1 view .LVU288
+ 1056              		.loc 1 284 23 is_stmt 0 view .LVU289
+ 1057 00d6 104C     		ldr	r4, .L65+8
+ 1058 00d8 DDE90023 		ldrd	r2, [sp]
+ 1059 00dc D4E90001 		ldrd	r0, [r4]
+ 1060 00e0 FFF7FEFF 		bl	__aeabi_dadd
+ 1061              	.LVL80:
+ 1062 00e4 C4E90001 		strd	r0, [r4]
+ 285:Core/Src/app_calc.c ****     s_zero_sq_sum_ch2 += (double)ch2 * (double)ch2;
+ 1063              		.loc 1 285 5 is_stmt 1 view .LVU290
+ 1064              		.loc 1 285 23 is_stmt 0 view .LVU291
+ 1065 00e8 0C4C     		ldr	r4, .L65+12
+ 1066 00ea 4246     		mov	r2, r8
+ 1067 00ec 4B46     		mov	r3, r9
+ 1068 00ee D4E90001 		ldrd	r0, [r4]
+ 1069 00f2 FFF7FEFF 		bl	__aeabi_dadd
+ 1070              	.LVL81:
+ 1071 00f6 C4E90001 		strd	r0, [r4]
+ 286:Core/Src/app_calc.c ****     s_zero_count++;
+ 1072              		.loc 1 286 5 is_stmt 1 view .LVU292
+ 1073              		.loc 1 286 17 is_stmt 0 view .LVU293
+ 1074 00fa 094A     		ldr	r2, .L65+16
+ 1075 00fc 1368     		ldr	r3, [r2]
+ 1076 00fe 0133     		adds	r3, r3, #1
+ 1077 0100 1360     		str	r3, [r2]
+ 1078              	.L63:
+ 287:Core/Src/app_calc.c ****   }
+ 288:Core/Src/app_calc.c ****   taskEXIT_CRITICAL();
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 26
+
+
+ 1079              		.loc 1 288 3 is_stmt 1 view .LVU294
+ 1080 0102 FFF7FEFF 		bl	vPortExitCritical
+ 1081              	.LVL82:
+ 289:Core/Src/app_calc.c **** }
+ 1082              		.loc 1 289 1 is_stmt 0 view .LVU295
+ 1083 0106 02B0     		add	sp, sp, #8
+ 1084              	.LCFI11:
+ 1085              		.cfi_def_cfa_offset 40
+ 1086              		@ sp needed
+ 1087 0108 BDEC028B 		vldm	sp!, {d8}
+ 1088              	.LCFI12:
+ 1089              		.cfi_restore 80
+ 1090              		.cfi_restore 81
+ 1091              		.cfi_def_cfa_offset 32
+ 1092 010c BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 1093              	.L66:
+ 1094              		.align	2
+ 1095              	.L65:
+ 1096 0110 00000000 		.word	s_zero_collecting
+ 1097 0114 00000000 		.word	s_zero_sum_ch2
+ 1098 0118 00000000 		.word	s_zero_sq_sum_ch1
+ 1099 011c 00000000 		.word	s_zero_sq_sum_ch2
+ 1100 0120 00000000 		.word	s_zero_count
+ 1101 0124 00000000 		.word	s_calc_accum
+ 1102 0128 00000000 		.word	s_zero_sum_ch1
+ 1103              		.cfi_endproc
+ 1104              	.LFE249:
+ 1106              		.section	.text.AppCalc_SetForceZeroInput,"ax",%progbits
+ 1107              		.align	1
+ 1108              		.global	AppCalc_SetForceZeroInput
+ 1109              		.syntax unified
+ 1110              		.thumb
+ 1111              		.thumb_func
+ 1113              	AppCalc_SetForceZeroInput:
+ 1114              	.LVL83:
+ 1115              	.LFB250:
+ 290:Core/Src/app_calc.c **** 
+ 291:Core/Src/app_calc.c **** void AppCalc_SetForceZeroInput(uint8_t enable)
+ 292:Core/Src/app_calc.c **** {
+ 1116              		.loc 1 292 1 is_stmt 1 view -0
+ 1117              		.cfi_startproc
+ 1118              		@ args = 0, pretend = 0, frame = 0
+ 1119              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1120              		@ link register save eliminated.
+ 293:Core/Src/app_calc.c ****   s_force_zero_input = (enable != 0U) ? 1U : 0U;
+ 1121              		.loc 1 293 3 view .LVU297
+ 1122              		.loc 1 293 22 is_stmt 0 view .LVU298
+ 1123 0000 0346     		mov	r3, r0
+ 1124 0002 00B1     		cbz	r0, .L68
+ 1125              		.loc 1 293 22 discriminator 1 view .LVU299
+ 1126 0004 0123     		movs	r3, #1
+ 1127              	.L68:
+ 1128              		.loc 1 293 22 discriminator 4 view .LVU300
+ 1129 0006 014A     		ldr	r2, .L69
+ 1130 0008 1370     		strb	r3, [r2]
+ 294:Core/Src/app_calc.c **** }
+ 1131              		.loc 1 294 1 view .LVU301
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 27
+
+
+ 1132 000a 7047     		bx	lr
+ 1133              	.L70:
+ 1134              		.align	2
+ 1135              	.L69:
+ 1136 000c 00000000 		.word	s_force_zero_input
+ 1137              		.cfi_endproc
+ 1138              	.LFE250:
+ 1140              		.section	.text.AppCalc_FeedRpm,"ax",%progbits
+ 1141              		.align	1
+ 1142              		.global	AppCalc_FeedRpm
+ 1143              		.syntax unified
+ 1144              		.thumb
+ 1145              		.thumb_func
+ 1147              	AppCalc_FeedRpm:
+ 1148              	.LVL84:
+ 1149              	.LFB251:
+ 295:Core/Src/app_calc.c **** 
+ 296:Core/Src/app_calc.c **** void AppCalc_FeedRpm(float rpm)
+ 297:Core/Src/app_calc.c **** {
+ 1150              		.loc 1 297 1 is_stmt 1 view -0
+ 1151              		.cfi_startproc
+ 1152              		@ args = 0, pretend = 0, frame = 0
+ 1153              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1154              		@ link register save eliminated.
+ 298:Core/Src/app_calc.c ****   s_calc_accum.rpm_sum += rpm;
+ 1155              		.loc 1 298 3 view .LVU303
+ 1156              		.loc 1 298 15 is_stmt 0 view .LVU304
+ 1157 0000 054B     		ldr	r3, .L72
+ 1158 0002 D3ED087A 		vldr.32	s15, [r3, #32]
+ 1159              		.loc 1 298 24 view .LVU305
+ 1160 0006 77EE807A 		vadd.f32	s15, s15, s0
+ 1161 000a C3ED087A 		vstr.32	s15, [r3, #32]
+ 299:Core/Src/app_calc.c ****   s_calc_accum.rpm_count++;
+ 1162              		.loc 1 299 3 is_stmt 1 view .LVU306
+ 1163              		.loc 1 299 15 is_stmt 0 view .LVU307
+ 1164 000e 9A6A     		ldr	r2, [r3, #40]
+ 1165              		.loc 1 299 25 view .LVU308
+ 1166 0010 0132     		adds	r2, r2, #1
+ 1167 0012 9A62     		str	r2, [r3, #40]
+ 300:Core/Src/app_calc.c **** }
+ 1168              		.loc 1 300 1 view .LVU309
+ 1169 0014 7047     		bx	lr
+ 1170              	.L73:
+ 1171 0016 00BF     		.align	2
+ 1172              	.L72:
+ 1173 0018 00000000 		.word	s_calc_accum
+ 1174              		.cfi_endproc
+ 1175              	.LFE251:
+ 1177              		.section	.text.AppCalc_ZeroCaptureStart,"ax",%progbits
+ 1178              		.align	1
+ 1179              		.global	AppCalc_ZeroCaptureStart
+ 1180              		.syntax unified
+ 1181              		.thumb
+ 1182              		.thumb_func
+ 1184              	AppCalc_ZeroCaptureStart:
+ 1185              	.LVL85:
+ 1186              	.LFB252:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 28
+
+
+ 301:Core/Src/app_calc.c **** 
+ 302:Core/Src/app_calc.c **** void AppCalc_ZeroCaptureStart(uint16_t avg_mode)
+ 303:Core/Src/app_calc.c **** {
+ 1187              		.loc 1 303 1 is_stmt 1 view -0
+ 1188              		.cfi_startproc
+ 1189              		@ args = 0, pretend = 0, frame = 0
+ 1190              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1191              		.loc 1 303 1 is_stmt 0 view .LVU311
+ 1192 0000 10B5     		push	{r4, lr}
+ 1193              	.LCFI13:
+ 1194              		.cfi_def_cfa_offset 8
+ 1195              		.cfi_offset 4, -8
+ 1196              		.cfi_offset 14, -4
+ 1197 0002 0446     		mov	r4, r0
+ 304:Core/Src/app_calc.c ****   taskENTER_CRITICAL();
+ 1198              		.loc 1 304 3 is_stmt 1 view .LVU312
+ 1199 0004 FFF7FEFF 		bl	vPortEnterCritical
+ 1200              	.LVL86:
+ 305:Core/Src/app_calc.c ****   s_zero_collecting = 1U;
+ 1201              		.loc 1 305 3 view .LVU313
+ 1202              		.loc 1 305 21 is_stmt 0 view .LVU314
+ 1203 0008 0C4B     		ldr	r3, .L76
+ 1204 000a 0122     		movs	r2, #1
+ 1205 000c 1A70     		strb	r2, [r3]
+ 306:Core/Src/app_calc.c ****   s_zero_sum_ch1 = 0.0;
+ 1206              		.loc 1 306 3 is_stmt 1 view .LVU315
+ 1207              		.loc 1 306 18 is_stmt 0 view .LVU316
+ 1208 000e 0022     		movs	r2, #0
+ 1209 0010 0023     		movs	r3, #0
+ 1210 0012 0B49     		ldr	r1, .L76+4
+ 1211 0014 C1E90023 		strd	r2, [r1]
+ 307:Core/Src/app_calc.c ****   s_zero_sum_ch2 = 0.0;
+ 1212              		.loc 1 307 3 is_stmt 1 view .LVU317
+ 1213              		.loc 1 307 18 is_stmt 0 view .LVU318
+ 1214 0018 0A49     		ldr	r1, .L76+8
+ 1215 001a C1E90023 		strd	r2, [r1]
+ 308:Core/Src/app_calc.c ****   s_zero_sq_sum_ch1 = 0.0;
+ 1216              		.loc 1 308 3 is_stmt 1 view .LVU319
+ 1217              		.loc 1 308 21 is_stmt 0 view .LVU320
+ 1218 001e 0A49     		ldr	r1, .L76+12
+ 1219 0020 C1E90023 		strd	r2, [r1]
+ 309:Core/Src/app_calc.c ****   s_zero_sq_sum_ch2 = 0.0;
+ 1220              		.loc 1 309 3 is_stmt 1 view .LVU321
+ 1221              		.loc 1 309 21 is_stmt 0 view .LVU322
+ 1222 0024 0949     		ldr	r1, .L76+16
+ 1223 0026 C1E90023 		strd	r2, [r1]
+ 310:Core/Src/app_calc.c ****   s_zero_count = 0U;
+ 1224              		.loc 1 310 3 is_stmt 1 view .LVU323
+ 1225              		.loc 1 310 16 is_stmt 0 view .LVU324
+ 1226 002a 094B     		ldr	r3, .L76+20
+ 1227 002c 0022     		movs	r2, #0
+ 1228 002e 1A60     		str	r2, [r3]
+ 311:Core/Src/app_calc.c ****   s_zero_avg_mode = avg_mode;
+ 1229              		.loc 1 311 3 is_stmt 1 view .LVU325
+ 1230              		.loc 1 311 19 is_stmt 0 view .LVU326
+ 1231 0030 084B     		ldr	r3, .L76+24
+ 1232 0032 1C80     		strh	r4, [r3]	@ movhi
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 29
+
+
+ 312:Core/Src/app_calc.c ****   taskEXIT_CRITICAL();
+ 1233              		.loc 1 312 3 is_stmt 1 view .LVU327
+ 1234 0034 FFF7FEFF 		bl	vPortExitCritical
+ 1235              	.LVL87:
+ 313:Core/Src/app_calc.c **** }
+ 1236              		.loc 1 313 1 is_stmt 0 view .LVU328
+ 1237 0038 10BD     		pop	{r4, pc}
+ 1238              	.LVL88:
+ 1239              	.L77:
+ 1240              		.loc 1 313 1 view .LVU329
+ 1241 003a 00BF     		.align	2
+ 1242              	.L76:
+ 1243 003c 00000000 		.word	s_zero_collecting
+ 1244 0040 00000000 		.word	s_zero_sum_ch1
+ 1245 0044 00000000 		.word	s_zero_sum_ch2
+ 1246 0048 00000000 		.word	s_zero_sq_sum_ch1
+ 1247 004c 00000000 		.word	s_zero_sq_sum_ch2
+ 1248 0050 00000000 		.word	s_zero_count
+ 1249 0054 00000000 		.word	s_zero_avg_mode
+ 1250              		.cfi_endproc
+ 1251              	.LFE252:
+ 1253              		.global	__aeabi_ui2d
+ 1254              		.global	__aeabi_ddiv
+ 1255              		.global	__aeabi_d2f
+ 1256              		.section	.text.AppCalc_ZeroCaptureStop,"ax",%progbits
+ 1257              		.align	1
+ 1258              		.global	AppCalc_ZeroCaptureStop
+ 1259              		.syntax unified
+ 1260              		.thumb
+ 1261              		.thumb_func
+ 1263              	AppCalc_ZeroCaptureStop:
+ 1264              	.LVL89:
+ 1265              	.LFB253:
+ 314:Core/Src/app_calc.c **** 
+ 315:Core/Src/app_calc.c **** uint8_t AppCalc_ZeroCaptureStop(float *zero_ch1, float *zero_ch2)
+ 316:Core/Src/app_calc.c **** {
+ 1266              		.loc 1 316 1 is_stmt 1 view -0
+ 1267              		.cfi_startproc
+ 1268              		@ args = 0, pretend = 0, frame = 0
+ 1269              		@ frame_needed = 0, uses_anonymous_args = 0
+ 317:Core/Src/app_calc.c ****   double sum1;
+ 1270              		.loc 1 317 3 view .LVU331
+ 318:Core/Src/app_calc.c ****   double sum2;
+ 1271              		.loc 1 318 3 view .LVU332
+ 319:Core/Src/app_calc.c ****   double sq_sum1;
+ 1272              		.loc 1 319 3 view .LVU333
+ 320:Core/Src/app_calc.c ****   double sq_sum2;
+ 1273              		.loc 1 320 3 view .LVU334
+ 321:Core/Src/app_calc.c ****   uint32_t count;
+ 1274              		.loc 1 321 3 view .LVU335
+ 322:Core/Src/app_calc.c ****   uint16_t avg_mode;
+ 1275              		.loc 1 322 3 view .LVU336
+ 323:Core/Src/app_calc.c **** 
+ 324:Core/Src/app_calc.c ****   if ((zero_ch1 == NULL) || (zero_ch2 == NULL))
+ 1276              		.loc 1 324 3 view .LVU337
+ 1277              		.loc 1 324 6 is_stmt 0 view .LVU338
+ 1278 0000 0028     		cmp	r0, #0
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 30
+
+
+ 1279 0002 62D0     		beq	.L81
+ 316:Core/Src/app_calc.c ****   double sum1;
+ 1280              		.loc 1 316 1 view .LVU339
+ 1281 0004 2DE9F04D 		push	{r4, r5, r6, r7, r8, r10, fp, lr}
+ 1282              	.LCFI14:
+ 1283              		.cfi_def_cfa_offset 32
+ 1284              		.cfi_offset 4, -32
+ 1285              		.cfi_offset 5, -28
+ 1286              		.cfi_offset 6, -24
+ 1287              		.cfi_offset 7, -20
+ 1288              		.cfi_offset 8, -16
+ 1289              		.cfi_offset 10, -12
+ 1290              		.cfi_offset 11, -8
+ 1291              		.cfi_offset 14, -4
+ 1292 0008 2DED068B 		vpush.64	{d8, d9, d10}
+ 1293              	.LCFI15:
+ 1294              		.cfi_def_cfa_offset 56
+ 1295              		.cfi_offset 80, -56
+ 1296              		.cfi_offset 81, -52
+ 1297              		.cfi_offset 82, -48
+ 1298              		.cfi_offset 83, -44
+ 1299              		.cfi_offset 84, -40
+ 1300              		.cfi_offset 85, -36
+ 1301 000c 0C46     		mov	r4, r1
+ 1302 000e 8046     		mov	r8, r0
+ 1303              		.loc 1 324 26 discriminator 1 view .LVU340
+ 1304 0010 0029     		cmp	r1, #0
+ 1305 0012 5CD0     		beq	.L82
+ 325:Core/Src/app_calc.c ****   {
+ 326:Core/Src/app_calc.c ****     return 0U;
+ 327:Core/Src/app_calc.c ****   }
+ 328:Core/Src/app_calc.c **** 
+ 329:Core/Src/app_calc.c ****   taskENTER_CRITICAL();
+ 1306              		.loc 1 329 3 is_stmt 1 view .LVU341
+ 1307 0014 FFF7FEFF 		bl	vPortEnterCritical
+ 1308              	.LVL90:
+ 330:Core/Src/app_calc.c ****   sum1 = s_zero_sum_ch1;
+ 1309              		.loc 1 330 3 view .LVU342
+ 1310              		.loc 1 330 8 is_stmt 0 view .LVU343
+ 1311 0018 2F4B     		ldr	r3, .L89
+ 1312 001a 93ED008B 		vldr.64	d8, [r3]
+ 1313              	.LVL91:
+ 331:Core/Src/app_calc.c ****   sum2 = s_zero_sum_ch2;
+ 1314              		.loc 1 331 3 is_stmt 1 view .LVU344
+ 1315              		.loc 1 331 8 is_stmt 0 view .LVU345
+ 1316 001e 2F4B     		ldr	r3, .L89+4
+ 1317 0020 D3E900AB 		ldrd	r10, [r3]
+ 1318              	.LVL92:
+ 332:Core/Src/app_calc.c ****   sq_sum1 = s_zero_sq_sum_ch1;
+ 1319              		.loc 1 332 3 is_stmt 1 view .LVU346
+ 1320              		.loc 1 332 11 is_stmt 0 view .LVU347
+ 1321 0024 2E4B     		ldr	r3, .L89+8
+ 1322 0026 93ED00AB 		vldr.64	d10, [r3]
+ 1323              	.LVL93:
+ 333:Core/Src/app_calc.c ****   sq_sum2 = s_zero_sq_sum_ch2;
+ 1324              		.loc 1 333 3 is_stmt 1 view .LVU348
+ 1325              		.loc 1 333 11 is_stmt 0 view .LVU349
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 31
+
+
+ 1326 002a 2E4B     		ldr	r3, .L89+12
+ 1327 002c 93ED009B 		vldr.64	d9, [r3]
+ 1328              	.LVL94:
+ 334:Core/Src/app_calc.c ****   count = s_zero_count;
+ 1329              		.loc 1 334 3 is_stmt 1 view .LVU350
+ 1330              		.loc 1 334 9 is_stmt 0 view .LVU351
+ 1331 0030 2D4B     		ldr	r3, .L89+16
+ 1332 0032 1D68     		ldr	r5, [r3]
+ 1333              	.LVL95:
+ 335:Core/Src/app_calc.c ****   avg_mode = s_zero_avg_mode;
+ 1334              		.loc 1 335 3 is_stmt 1 view .LVU352
+ 1335              		.loc 1 335 12 is_stmt 0 view .LVU353
+ 1336 0034 2D4B     		ldr	r3, .L89+20
+ 1337 0036 1E88     		ldrh	r6, [r3]
+ 1338              	.LVL96:
+ 336:Core/Src/app_calc.c ****   s_zero_collecting = 0U;
+ 1339              		.loc 1 336 3 is_stmt 1 view .LVU354
+ 1340              		.loc 1 336 21 is_stmt 0 view .LVU355
+ 1341 0038 2D4B     		ldr	r3, .L89+24
+ 1342              		.loc 1 336 21 view .LVU356
+ 1343 003a 0022     		movs	r2, #0
+ 1344 003c 1A70     		strb	r2, [r3]
+ 337:Core/Src/app_calc.c ****   taskEXIT_CRITICAL();
+ 1345              		.loc 1 337 3 is_stmt 1 view .LVU357
+ 1346 003e FFF7FEFF 		bl	vPortExitCritical
+ 1347              	.LVL97:
+ 338:Core/Src/app_calc.c **** 
+ 339:Core/Src/app_calc.c ****   if (count == 0U)
+ 1348              		.loc 1 339 3 view .LVU358
+ 1349              		.loc 1 339 6 is_stmt 0 view .LVU359
+ 1350 0042 002D     		cmp	r5, #0
+ 1351 0044 45D0     		beq	.L83
+ 340:Core/Src/app_calc.c ****   {
+ 341:Core/Src/app_calc.c ****     return 0U;
+ 342:Core/Src/app_calc.c ****   }
+ 343:Core/Src/app_calc.c **** 
+ 344:Core/Src/app_calc.c ****   if (avg_mode == 1U)
+ 1352              		.loc 1 344 3 is_stmt 1 view .LVU360
+ 1353              		.loc 1 344 6 is_stmt 0 view .LVU361
+ 1354 0046 012E     		cmp	r6, #1
+ 1355 0048 1CD0     		beq	.L88
+ 345:Core/Src/app_calc.c ****   {
+ 346:Core/Src/app_calc.c ****     *zero_ch1 = sqrtf((float)(sq_sum1 / (double)count));
+ 347:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 348:Core/Src/app_calc.c ****   }
+ 349:Core/Src/app_calc.c ****   else
+ 350:Core/Src/app_calc.c ****   {
+ 351:Core/Src/app_calc.c ****     *zero_ch1 = (float)(sum1 / (double)count);
+ 1356              		.loc 1 351 5 is_stmt 1 view .LVU362
+ 1357              		.loc 1 351 32 is_stmt 0 view .LVU363
+ 1358 004a 2846     		mov	r0, r5
+ 1359 004c FFF7FEFF 		bl	__aeabi_ui2d
+ 1360              	.LVL98:
+ 1361 0050 0646     		mov	r6, r0
+ 1362              	.LVL99:
+ 1363              		.loc 1 351 32 view .LVU364
+ 1364 0052 0F46     		mov	r7, r1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 32
+
+
+ 1365              		.loc 1 351 30 view .LVU365
+ 1366 0054 0246     		mov	r2, r0
+ 1367 0056 0B46     		mov	r3, r1
+ 1368 0058 51EC180B 		vmov	r0, r1, d8
+ 1369 005c FFF7FEFF 		bl	__aeabi_ddiv
+ 1370              	.LVL100:
+ 1371              		.loc 1 351 17 view .LVU366
+ 1372 0060 FFF7FEFF 		bl	__aeabi_d2f
+ 1373              	.LVL101:
+ 1374              		.loc 1 351 15 view .LVU367
+ 1375 0064 C8F80000 		str	r0, [r8]	@ float
+ 352:Core/Src/app_calc.c ****     *zero_ch2 = (float)(sum2 / (double)count);
+ 1376              		.loc 1 352 5 is_stmt 1 view .LVU368
+ 1377              		.loc 1 352 30 is_stmt 0 view .LVU369
+ 1378 0068 3246     		mov	r2, r6
+ 1379 006a 3B46     		mov	r3, r7
+ 1380 006c 5046     		mov	r0, r10
+ 1381 006e 5946     		mov	r1, fp
+ 1382 0070 FFF7FEFF 		bl	__aeabi_ddiv
+ 1383              	.LVL102:
+ 1384              		.loc 1 352 17 view .LVU370
+ 1385 0074 FFF7FEFF 		bl	__aeabi_d2f
+ 1386              	.LVL103:
+ 1387              		.loc 1 352 15 view .LVU371
+ 1388 0078 2060     		str	r0, [r4]	@ float
+ 353:Core/Src/app_calc.c ****   }
+ 354:Core/Src/app_calc.c ****   return 1U;
+ 1389              		.loc 1 354 10 view .LVU372
+ 1390 007a 0120     		movs	r0, #1
+ 1391              	.LVL104:
+ 1392              	.L79:
+ 355:Core/Src/app_calc.c **** }
+ 1393              		.loc 1 355 1 view .LVU373
+ 1394 007c BDEC068B 		vldm	sp!, {d8-d10}
+ 1395              	.LCFI16:
+ 1396              		.cfi_remember_state
+ 1397              		.cfi_restore 84
+ 1398              		.cfi_restore 85
+ 1399              		.cfi_restore 82
+ 1400              		.cfi_restore 83
+ 1401              		.cfi_restore 80
+ 1402              		.cfi_restore 81
+ 1403              		.cfi_def_cfa_offset 32
+ 1404 0080 BDE8F08D 		pop	{r4, r5, r6, r7, r8, r10, fp, pc}
+ 1405              	.LVL105:
+ 1406              	.L88:
+ 1407              	.LCFI17:
+ 1408              		.cfi_restore_state
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1409              		.loc 1 346 5 is_stmt 1 view .LVU374
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1410              		.loc 1 346 41 is_stmt 0 view .LVU375
+ 1411 0084 2846     		mov	r0, r5
+ 1412 0086 FFF7FEFF 		bl	__aeabi_ui2d
+ 1413              	.LVL106:
+ 1414 008a 0646     		mov	r6, r0
+ 1415              	.LVL107:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 33
+
+
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1416              		.loc 1 346 41 view .LVU376
+ 1417 008c 0F46     		mov	r7, r1
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1418              		.loc 1 346 39 view .LVU377
+ 1419 008e 0246     		mov	r2, r0
+ 1420 0090 0B46     		mov	r3, r1
+ 1421 0092 51EC1A0B 		vmov	r0, r1, d10
+ 1422 0096 FFF7FEFF 		bl	__aeabi_ddiv
+ 1423              	.LVL108:
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1424              		.loc 1 346 17 view .LVU378
+ 1425 009a FFF7FEFF 		bl	__aeabi_d2f
+ 1426              	.LVL109:
+ 1427 009e 00EE100A 		vmov	s0, r0
+ 1428 00a2 FFF7FEFF 		bl	sqrtf
+ 1429              	.LVL110:
+ 346:Core/Src/app_calc.c ****     *zero_ch2 = sqrtf((float)(sq_sum2 / (double)count));
+ 1430              		.loc 1 346 15 discriminator 1 view .LVU379
+ 1431 00a6 88ED000A 		vstr.32	s0, [r8]
+ 347:Core/Src/app_calc.c ****   }
+ 1432              		.loc 1 347 5 is_stmt 1 view .LVU380
+ 347:Core/Src/app_calc.c ****   }
+ 1433              		.loc 1 347 39 is_stmt 0 view .LVU381
+ 1434 00aa 3246     		mov	r2, r6
+ 1435 00ac 3B46     		mov	r3, r7
+ 1436 00ae 51EC190B 		vmov	r0, r1, d9
+ 1437 00b2 FFF7FEFF 		bl	__aeabi_ddiv
+ 1438              	.LVL111:
+ 347:Core/Src/app_calc.c ****   }
+ 1439              		.loc 1 347 17 view .LVU382
+ 1440 00b6 FFF7FEFF 		bl	__aeabi_d2f
+ 1441              	.LVL112:
+ 1442 00ba 00EE100A 		vmov	s0, r0
+ 1443 00be FFF7FEFF 		bl	sqrtf
+ 1444              	.LVL113:
+ 347:Core/Src/app_calc.c ****   }
+ 1445              		.loc 1 347 15 discriminator 1 view .LVU383
+ 1446 00c2 84ED000A 		vstr.32	s0, [r4]
+ 354:Core/Src/app_calc.c **** }
+ 1447              		.loc 1 354 10 view .LVU384
+ 1448 00c6 0120     		movs	r0, #1
+ 1449 00c8 D8E7     		b	.L79
+ 1450              	.LVL114:
+ 1451              	.L81:
+ 1452              	.LCFI18:
+ 1453              		.cfi_def_cfa_offset 0
+ 1454              		.cfi_restore 4
+ 1455              		.cfi_restore 5
+ 1456              		.cfi_restore 6
+ 1457              		.cfi_restore 7
+ 1458              		.cfi_restore 8
+ 1459              		.cfi_restore 10
+ 1460              		.cfi_restore 11
+ 1461              		.cfi_restore 14
+ 1462              		.cfi_restore 80
+ 1463              		.cfi_restore 81
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 34
+
+
+ 1464              		.cfi_restore 82
+ 1465              		.cfi_restore 83
+ 1466              		.cfi_restore 84
+ 1467              		.cfi_restore 85
+ 326:Core/Src/app_calc.c ****   }
+ 1468              		.loc 1 326 12 view .LVU385
+ 1469 00ca 0020     		movs	r0, #0
+ 1470              	.LVL115:
+ 1471              		.loc 1 355 1 view .LVU386
+ 1472 00cc 7047     		bx	lr
+ 1473              	.LVL116:
+ 1474              	.L82:
+ 1475              	.LCFI19:
+ 1476              		.cfi_def_cfa_offset 56
+ 1477              		.cfi_offset 4, -32
+ 1478              		.cfi_offset 5, -28
+ 1479              		.cfi_offset 6, -24
+ 1480              		.cfi_offset 7, -20
+ 1481              		.cfi_offset 8, -16
+ 1482              		.cfi_offset 10, -12
+ 1483              		.cfi_offset 11, -8
+ 1484              		.cfi_offset 14, -4
+ 1485              		.cfi_offset 80, -56
+ 1486              		.cfi_offset 81, -52
+ 1487              		.cfi_offset 82, -48
+ 1488              		.cfi_offset 83, -44
+ 1489              		.cfi_offset 84, -40
+ 1490              		.cfi_offset 85, -36
+ 326:Core/Src/app_calc.c ****   }
+ 1491              		.loc 1 326 12 view .LVU387
+ 1492 00ce 0020     		movs	r0, #0
+ 1493              	.LVL117:
+ 326:Core/Src/app_calc.c ****   }
+ 1494              		.loc 1 326 12 view .LVU388
+ 1495 00d0 D4E7     		b	.L79
+ 1496              	.LVL118:
+ 1497              	.L83:
+ 341:Core/Src/app_calc.c ****   }
+ 1498              		.loc 1 341 12 view .LVU389
+ 1499 00d2 0020     		movs	r0, #0
+ 1500 00d4 D2E7     		b	.L79
+ 1501              	.L90:
+ 1502 00d6 00BF     		.align	2
+ 1503              	.L89:
+ 1504 00d8 00000000 		.word	s_zero_sum_ch1
+ 1505 00dc 00000000 		.word	s_zero_sum_ch2
+ 1506 00e0 00000000 		.word	s_zero_sq_sum_ch1
+ 1507 00e4 00000000 		.word	s_zero_sq_sum_ch2
+ 1508 00e8 00000000 		.word	s_zero_count
+ 1509 00ec 00000000 		.word	s_zero_avg_mode
+ 1510 00f0 00000000 		.word	s_zero_collecting
+ 1511              		.cfi_endproc
+ 1512              	.LFE253:
+ 1514              		.section	.text.AppCalc_ZeroCaptureGetState,"ax",%progbits
+ 1515              		.align	1
+ 1516              		.global	AppCalc_ZeroCaptureGetState
+ 1517              		.syntax unified
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 35
+
+
+ 1518              		.thumb
+ 1519              		.thumb_func
+ 1521              	AppCalc_ZeroCaptureGetState:
+ 1522              	.LVL119:
+ 1523              	.LFB254:
+ 356:Core/Src/app_calc.c **** 
+ 357:Core/Src/app_calc.c **** void AppCalc_ZeroCaptureGetState(uint8_t *collecting, uint32_t *sample_count)
+ 358:Core/Src/app_calc.c **** {
+ 1524              		.loc 1 358 1 is_stmt 1 view -0
+ 1525              		.cfi_startproc
+ 1526              		@ args = 0, pretend = 0, frame = 0
+ 1527              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1528              		.loc 1 358 1 is_stmt 0 view .LVU391
+ 1529 0000 38B5     		push	{r3, r4, r5, lr}
+ 1530              	.LCFI20:
+ 1531              		.cfi_def_cfa_offset 16
+ 1532              		.cfi_offset 3, -16
+ 1533              		.cfi_offset 4, -12
+ 1534              		.cfi_offset 5, -8
+ 1535              		.cfi_offset 14, -4
+ 1536 0002 0546     		mov	r5, r0
+ 1537 0004 0C46     		mov	r4, r1
+ 359:Core/Src/app_calc.c ****   taskENTER_CRITICAL();
+ 1538              		.loc 1 359 3 is_stmt 1 view .LVU392
+ 1539 0006 FFF7FEFF 		bl	vPortEnterCritical
+ 1540              	.LVL120:
+ 360:Core/Src/app_calc.c ****   if (collecting != NULL)
+ 1541              		.loc 1 360 3 view .LVU393
+ 1542              		.loc 1 360 6 is_stmt 0 view .LVU394
+ 1543 000a 15B1     		cbz	r5, .L92
+ 361:Core/Src/app_calc.c ****   {
+ 362:Core/Src/app_calc.c ****     *collecting = s_zero_collecting;
+ 1544              		.loc 1 362 5 is_stmt 1 view .LVU395
+ 1545              		.loc 1 362 17 is_stmt 0 view .LVU396
+ 1546 000c 044B     		ldr	r3, .L95
+ 1547 000e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1548 0010 2B70     		strb	r3, [r5]
+ 1549              	.L92:
+ 363:Core/Src/app_calc.c ****   }
+ 364:Core/Src/app_calc.c ****   if (sample_count != NULL)
+ 1550              		.loc 1 364 3 is_stmt 1 view .LVU397
+ 1551              		.loc 1 364 6 is_stmt 0 view .LVU398
+ 1552 0012 14B1     		cbz	r4, .L93
+ 365:Core/Src/app_calc.c ****   {
+ 366:Core/Src/app_calc.c ****     *sample_count = s_zero_count;
+ 1553              		.loc 1 366 5 is_stmt 1 view .LVU399
+ 1554              		.loc 1 366 19 is_stmt 0 view .LVU400
+ 1555 0014 034B     		ldr	r3, .L95+4
+ 1556 0016 1B68     		ldr	r3, [r3]
+ 1557 0018 2360     		str	r3, [r4]
+ 1558              	.L93:
+ 367:Core/Src/app_calc.c ****   }
+ 368:Core/Src/app_calc.c ****   taskEXIT_CRITICAL();
+ 1559              		.loc 1 368 3 is_stmt 1 view .LVU401
+ 1560 001a FFF7FEFF 		bl	vPortExitCritical
+ 1561              	.LVL121:
+ 369:Core/Src/app_calc.c **** }
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 36
+
+
+ 1562              		.loc 1 369 1 is_stmt 0 view .LVU402
+ 1563 001e 38BD     		pop	{r3, r4, r5, pc}
+ 1564              	.LVL122:
+ 1565              	.L96:
+ 1566              		.loc 1 369 1 view .LVU403
+ 1567              		.align	2
+ 1568              	.L95:
+ 1569 0020 00000000 		.word	s_zero_collecting
+ 1570 0024 00000000 		.word	s_zero_count
+ 1571              		.cfi_endproc
+ 1572              	.LFE254:
+ 1574              		.section	.text.AppCalc_Compute1s,"ax",%progbits
+ 1575              		.align	1
+ 1576              		.global	AppCalc_Compute1s
+ 1577              		.syntax unified
+ 1578              		.thumb
+ 1579              		.thumb_func
+ 1581              	AppCalc_Compute1s:
+ 1582              	.LVL123:
+ 1583              	.LFB255:
+ 370:Core/Src/app_calc.c **** 
+ 371:Core/Src/app_calc.c **** void AppCalc_Compute1s(const app_calc_ctx_t *ctx, result_1s_t *out)
+ 372:Core/Src/app_calc.c **** {
+ 1584              		.loc 1 372 1 is_stmt 1 view -0
+ 1585              		.cfi_startproc
+ 1586              		@ args = 0, pretend = 0, frame = 152
+ 1587              		@ frame_needed = 0, uses_anonymous_args = 0
+ 373:Core/Src/app_calc.c ****   calc_accum_t snap;
+ 1588              		.loc 1 373 3 view .LVU405
+ 374:Core/Src/app_calc.c ****   protocol_values_t values_snap;
+ 1589              		.loc 1 374 3 view .LVU406
+ 375:Core/Src/app_calc.c ****   float avg_ch1 = 0.0f;
+ 1590              		.loc 1 375 3 view .LVU407
+ 376:Core/Src/app_calc.c ****   float avg_ch2 = 0.0f;
+ 1591              		.loc 1 376 3 view .LVU408
+ 377:Core/Src/app_calc.c ****   float avg_rpm = 0.0f;
+ 1592              		.loc 1 377 3 view .LVU409
+ 378:Core/Src/app_calc.c ****   float ch1_eff = 0.0f;
+ 1593              		.loc 1 378 3 view .LVU410
+ 379:Core/Src/app_calc.c ****   float ch2_eff = 0.0f;
+ 1594              		.loc 1 379 3 view .LVU411
+ 380:Core/Src/app_calc.c ****   float zero_voltage_ch1 = DEFAULT_ZERO_VOLTAGE;
+ 1595              		.loc 1 380 3 view .LVU412
+ 381:Core/Src/app_calc.c ****   float zero_voltage_ch2 = DEFAULT_ZERO_VOLTAGE;
+ 1596              		.loc 1 381 3 view .LVU413
+ 382:Core/Src/app_calc.c ****   float strain_ch1 = 0.0f;
+ 1597              		.loc 1 382 3 view .LVU414
+ 383:Core/Src/app_calc.c ****   float strain_ch2 = 0.0f;
+ 1598              		.loc 1 383 3 view .LVU415
+ 384:Core/Src/app_calc.c ****   float micro_strain_ch1 = 0.0f;
+ 1599              		.loc 1 384 3 view .LVU416
+ 385:Core/Src/app_calc.c ****   float micro_strain_ch2 = 0.0f;
+ 1600              		.loc 1 385 3 view .LVU417
+ 386:Core/Src/app_calc.c ****   float torque_knm_calc = 0.0f;
+ 1601              		.loc 1 386 3 view .LVU418
+ 387:Core/Src/app_calc.c ****   float thrust_kn_calc = 0.0f;
+ 1602              		.loc 1 387 3 view .LVU419
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 37
+
+
+ 388:Core/Src/app_calc.c ****   float power_kw_calc = 0.0f;
+ 1603              		.loc 1 388 3 view .LVU420
+ 389:Core/Src/app_calc.c ****   uint8_t force_zero_input;
+ 1604              		.loc 1 389 3 view .LVU421
+ 390:Core/Src/app_calc.c **** 
+ 391:Core/Src/app_calc.c ****   if ((ctx == NULL) || (out == NULL))
+ 1605              		.loc 1 391 3 view .LVU422
+ 1606              		.loc 1 391 6 is_stmt 0 view .LVU423
+ 1607 0000 0028     		cmp	r0, #0
+ 1608 0002 00F0E780 		beq	.L110
+ 372:Core/Src/app_calc.c ****   calc_accum_t snap;
+ 1609              		.loc 1 372 1 view .LVU424
+ 1610 0006 F0B5     		push	{r4, r5, r6, r7, lr}
+ 1611              	.LCFI21:
+ 1612              		.cfi_def_cfa_offset 20
+ 1613              		.cfi_offset 4, -20
+ 1614              		.cfi_offset 5, -16
+ 1615              		.cfi_offset 6, -12
+ 1616              		.cfi_offset 7, -8
+ 1617              		.cfi_offset 14, -4
+ 1618 0008 2DED048B 		vpush.64	{d8, d9}
+ 1619              	.LCFI22:
+ 1620              		.cfi_def_cfa_offset 36
+ 1621              		.cfi_offset 80, -36
+ 1622              		.cfi_offset 81, -32
+ 1623              		.cfi_offset 82, -28
+ 1624              		.cfi_offset 83, -24
+ 1625 000c A7B0     		sub	sp, sp, #156
+ 1626              	.LCFI23:
+ 1627              		.cfi_def_cfa_offset 192
+ 1628 000e 0C46     		mov	r4, r1
+ 1629 0010 0546     		mov	r5, r0
+ 1630              		.loc 1 391 21 discriminator 1 view .LVU425
+ 1631 0012 0029     		cmp	r1, #0
+ 1632 0014 00F0D280 		beq	.L97
+ 392:Core/Src/app_calc.c ****   {
+ 393:Core/Src/app_calc.c ****     return;
+ 394:Core/Src/app_calc.c ****   }
+ 395:Core/Src/app_calc.c **** 
+ 396:Core/Src/app_calc.c ****   taskENTER_CRITICAL();
+ 1633              		.loc 1 396 3 is_stmt 1 view .LVU426
+ 1634 0018 FFF7FEFF 		bl	vPortEnterCritical
+ 1635              	.LVL124:
+ 397:Core/Src/app_calc.c ****   snap = s_calc_accum;
+ 1636              		.loc 1 397 3 view .LVU427
+ 1637              		.loc 1 397 8 is_stmt 0 view .LVU428
+ 1638 001c 6E4F     		ldr	r7, .L114
+ 1639 001e 1AAE     		add	r6, sp, #104
+ 1640 0020 BC46     		mov	ip, r7
+ 1641 0022 BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
+ 1642 0026 0FC6     		stmia	r6!, {r0, r1, r2, r3}
+ 1643 0028 BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
+ 1644 002c 0FC6     		stmia	r6!, {r0, r1, r2, r3}
+ 1645 002e 9CE80F00 		ldm	ip, {r0, r1, r2, r3}
+ 1646 0032 86E80F00 		stm	r6, {r0, r1, r2, r3}
+ 398:Core/Src/app_calc.c ****   memset((void *)&s_calc_accum, 0, sizeof(s_calc_accum));
+ 1647              		.loc 1 398 3 is_stmt 1 view .LVU429
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 38
+
+
+ 1648 0036 3022     		movs	r2, #48
+ 1649 0038 0021     		movs	r1, #0
+ 1650 003a 3846     		mov	r0, r7
+ 1651 003c FFF7FEFF 		bl	memset
+ 1652              	.LVL125:
+ 399:Core/Src/app_calc.c ****   taskEXIT_CRITICAL();
+ 1653              		.loc 1 399 3 view .LVU430
+ 1654 0040 FFF7FEFF 		bl	vPortExitCritical
+ 1655              	.LVL126:
+ 400:Core/Src/app_calc.c **** 
+ 401:Core/Src/app_calc.c ****   if ((ctx->mtx_shared_data != NULL) && (ctx->protocol_values != NULL) &&
+ 1656              		.loc 1 401 3 view .LVU431
+ 1657              		.loc 1 401 11 is_stmt 0 view .LVU432
+ 1658 0044 2868     		ldr	r0, [r5]
+ 1659              		.loc 1 401 6 view .LVU433
+ 1660 0046 30B1     		cbz	r0, .L101
+ 1661              		.loc 1 401 45 discriminator 1 view .LVU434
+ 1662 0048 6B68     		ldr	r3, [r5, #4]
+ 1663              		.loc 1 401 38 discriminator 1 view .LVU435
+ 1664 004a 23B1     		cbz	r3, .L101
+ 402:Core/Src/app_calc.c ****       (osMutexAcquire(ctx->mtx_shared_data, 2U) == osOK))
+ 1665              		.loc 1 402 8 view .LVU436
+ 1666 004c 0221     		movs	r1, #2
+ 1667 004e FFF7FEFF 		bl	osMutexAcquire
+ 1668              	.LVL127:
+ 401:Core/Src/app_calc.c ****       (osMutexAcquire(ctx->mtx_shared_data, 2U) == osOK))
+ 1669              		.loc 1 401 72 discriminator 2 view .LVU437
+ 1670 0052 0028     		cmp	r0, #0
+ 1671 0054 47D0     		beq	.L113
+ 1672              	.L101:
+ 403:Core/Src/app_calc.c ****   {
+ 404:Core/Src/app_calc.c ****     values_snap = *(const protocol_values_t *)ctx->protocol_values;
+ 405:Core/Src/app_calc.c ****     osMutexRelease(ctx->mtx_shared_data);
+ 406:Core/Src/app_calc.c ****   }
+ 407:Core/Src/app_calc.c ****   else
+ 408:Core/Src/app_calc.c ****   {
+ 409:Core/Src/app_calc.c ****     memset(&values_snap, 0, sizeof(values_snap));
+ 1673              		.loc 1 409 5 is_stmt 1 view .LVU438
+ 1674 0056 6822     		movs	r2, #104
+ 1675 0058 0021     		movs	r1, #0
+ 1676 005a 6846     		mov	r0, sp
+ 1677 005c FFF7FEFF 		bl	memset
+ 1678              	.LVL128:
+ 1679              	.L102:
+ 410:Core/Src/app_calc.c ****   }
+ 411:Core/Src/app_calc.c **** 
+ 412:Core/Src/app_calc.c ****   zero_voltage_ch1 = values_snap.zero_voltage[0];
+ 1680              		.loc 1 412 3 view .LVU439
+ 1681              		.loc 1 412 20 is_stmt 0 view .LVU440
+ 1682 0060 DDED159A 		vldr.32	s19, [sp, #84]
+ 1683              	.LVL129:
+ 413:Core/Src/app_calc.c ****   zero_voltage_ch2 = values_snap.zero_voltage[1];
+ 1684              		.loc 1 413 3 is_stmt 1 view .LVU441
+ 1685              		.loc 1 413 20 is_stmt 0 view .LVU442
+ 1686 0064 DDED168A 		vldr.32	s17, [sp, #88]
+ 1687              	.LVL130:
+ 414:Core/Src/app_calc.c ****   force_zero_input = s_force_zero_input;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 39
+
+
+ 1688              		.loc 1 414 3 is_stmt 1 view .LVU443
+ 1689              		.loc 1 414 20 is_stmt 0 view .LVU444
+ 1690 0068 5C4B     		ldr	r3, .L114+4
+ 1691 006a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1692              	.LVL131:
+ 415:Core/Src/app_calc.c **** 
+ 416:Core/Src/app_calc.c ****   if ((force_zero_input != 0U) || (snap.sample_count == 0U))
+ 1693              		.loc 1 416 3 is_stmt 1 view .LVU445
+ 1694              		.loc 1 416 6 is_stmt 0 view .LVU446
+ 1695 006c 002B     		cmp	r3, #0
+ 1696 006e 43D1     		bne	.L106
+ 1697              		.loc 1 416 40 discriminator 1 view .LVU447
+ 1698 0070 2398     		ldr	r0, [sp, #140]
+ 1699              		.loc 1 416 32 discriminator 1 view .LVU448
+ 1700 0072 0028     		cmp	r0, #0
+ 1701 0074 00F0A680 		beq	.L107
+ 417:Core/Src/app_calc.c ****   {
+ 418:Core/Src/app_calc.c ****     avg_ch1 = zero_voltage_ch1;
+ 419:Core/Src/app_calc.c ****     avg_ch2 = zero_voltage_ch2;
+ 420:Core/Src/app_calc.c ****     ch1_eff = zero_voltage_ch1;
+ 421:Core/Src/app_calc.c ****     ch2_eff = zero_voltage_ch2;
+ 422:Core/Src/app_calc.c ****   }
+ 423:Core/Src/app_calc.c ****   else
+ 424:Core/Src/app_calc.c ****   {
+ 425:Core/Src/app_calc.c ****     avg_ch1 = (float)(snap.ch1_sum / (double)snap.sample_count);
+ 1702              		.loc 1 425 5 is_stmt 1 view .LVU449
+ 1703              		.loc 1 425 38 is_stmt 0 view .LVU450
+ 1704 0078 FFF7FEFF 		bl	__aeabi_ui2d
+ 1705              	.LVL132:
+ 1706              		.loc 1 425 38 view .LVU451
+ 1707 007c 0646     		mov	r6, r0
+ 1708 007e 0F46     		mov	r7, r1
+ 1709              		.loc 1 425 36 view .LVU452
+ 1710 0080 0246     		mov	r2, r0
+ 1711 0082 0B46     		mov	r3, r1
+ 1712 0084 DDE91A01 		ldrd	r0, [sp, #104]
+ 1713 0088 FFF7FEFF 		bl	__aeabi_ddiv
+ 1714              	.LVL133:
+ 1715              		.loc 1 425 13 view .LVU453
+ 1716 008c FFF7FEFF 		bl	__aeabi_d2f
+ 1717              	.LVL134:
+ 1718 0090 08EE100A 		vmov	s16, r0
+ 1719              	.LVL135:
+ 426:Core/Src/app_calc.c ****     avg_ch2 = (float)(snap.ch2_sum / (double)snap.sample_count);
+ 1720              		.loc 1 426 5 is_stmt 1 view .LVU454
+ 1721              		.loc 1 426 36 is_stmt 0 view .LVU455
+ 1722 0094 3246     		mov	r2, r6
+ 1723 0096 3B46     		mov	r3, r7
+ 1724 0098 DDE91C01 		ldrd	r0, [sp, #112]
+ 1725              	.LVL136:
+ 1726              		.loc 1 426 36 view .LVU456
+ 1727 009c FFF7FEFF 		bl	__aeabi_ddiv
+ 1728              	.LVL137:
+ 1729              		.loc 1 426 13 view .LVU457
+ 1730 00a0 FFF7FEFF 		bl	__aeabi_d2f
+ 1731              	.LVL138:
+ 1732 00a4 00EE100A 		vmov	s0, r0
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 40
+
+
+ 1733              	.LVL139:
+ 427:Core/Src/app_calc.c ****     if (values_snap.avg_mode == 1U)
+ 1734              		.loc 1 427 5 is_stmt 1 view .LVU458
+ 1735              		.loc 1 427 20 is_stmt 0 view .LVU459
+ 1736 00a8 BDF84030 		ldrh	r3, [sp, #64]
+ 1737              		.loc 1 427 8 view .LVU460
+ 1738 00ac 012B     		cmp	r3, #1
+ 1739 00ae 27D1     		bne	.L103
+ 428:Core/Src/app_calc.c ****     {
+ 429:Core/Src/app_calc.c ****       ch1_eff = sqrtf((float)(snap.ch1_sq_sum / (double)snap.sample_count));
+ 1740              		.loc 1 429 7 is_stmt 1 view .LVU461
+ 1741              		.loc 1 429 47 is_stmt 0 view .LVU462
+ 1742 00b0 3246     		mov	r2, r6
+ 1743 00b2 3B46     		mov	r3, r7
+ 1744 00b4 DDE91E01 		ldrd	r0, [sp, #120]
+ 1745              	.LVL140:
+ 1746              		.loc 1 429 47 view .LVU463
+ 1747 00b8 FFF7FEFF 		bl	__aeabi_ddiv
+ 1748              	.LVL141:
+ 1749              		.loc 1 429 17 view .LVU464
+ 1750 00bc FFF7FEFF 		bl	__aeabi_d2f
+ 1751              	.LVL142:
+ 1752 00c0 00EE100A 		vmov	s0, r0
+ 1753 00c4 FFF7FEFF 		bl	sqrtf
+ 1754              	.LVL143:
+ 1755 00c8 B0EE408A 		vmov.f32	s16, s0
+ 1756              	.LVL144:
+ 430:Core/Src/app_calc.c ****       ch2_eff = sqrtf((float)(snap.ch2_sq_sum / (double)snap.sample_count));
+ 1757              		.loc 1 430 7 is_stmt 1 view .LVU465
+ 1758              		.loc 1 430 47 is_stmt 0 view .LVU466
+ 1759 00cc 3246     		mov	r2, r6
+ 1760 00ce 3B46     		mov	r3, r7
+ 1761 00d0 DDE92001 		ldrd	r0, [sp, #128]
+ 1762 00d4 FFF7FEFF 		bl	__aeabi_ddiv
+ 1763              	.LVL145:
+ 1764              		.loc 1 430 17 view .LVU467
+ 1765 00d8 FFF7FEFF 		bl	__aeabi_d2f
+ 1766              	.LVL146:
+ 1767 00dc 00EE100A 		vmov	s0, r0
+ 1768 00e0 FFF7FEFF 		bl	sqrtf
+ 1769              	.LVL147:
+ 1770              		.loc 1 430 17 view .LVU468
+ 1771 00e4 0CE0     		b	.L103
+ 1772              	.LVL148:
+ 1773              	.L113:
+ 404:Core/Src/app_calc.c ****     osMutexRelease(ctx->mtx_shared_data);
+ 1774              		.loc 1 404 5 is_stmt 1 view .LVU469
+ 404:Core/Src/app_calc.c ****     osMutexRelease(ctx->mtx_shared_data);
+ 1775              		.loc 1 404 17 is_stmt 0 view .LVU470
+ 1776 00e6 6822     		movs	r2, #104
+ 1777 00e8 6968     		ldr	r1, [r5, #4]
+ 1778 00ea 6846     		mov	r0, sp
+ 1779 00ec FFF7FEFF 		bl	memcpy
+ 1780              	.LVL149:
+ 405:Core/Src/app_calc.c ****   }
+ 1781              		.loc 1 405 5 is_stmt 1 view .LVU471
+ 1782 00f0 2868     		ldr	r0, [r5]
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 41
+
+
+ 1783 00f2 FFF7FEFF 		bl	osMutexRelease
+ 1784              	.LVL150:
+ 1785 00f6 B3E7     		b	.L102
+ 1786              	.LVL151:
+ 1787              	.L106:
+ 421:Core/Src/app_calc.c ****   }
+ 1788              		.loc 1 421 13 is_stmt 0 view .LVU472
+ 1789 00f8 B0EE680A 		vmov.f32	s0, s17
+ 420:Core/Src/app_calc.c ****     ch2_eff = zero_voltage_ch2;
+ 1790              		.loc 1 420 13 view .LVU473
+ 1791 00fc B0EE698A 		vmov.f32	s16, s19
+ 1792              	.LVL152:
+ 1793              	.L103:
+ 431:Core/Src/app_calc.c ****     }
+ 432:Core/Src/app_calc.c ****     else
+ 433:Core/Src/app_calc.c ****     {
+ 434:Core/Src/app_calc.c ****       ch1_eff = avg_ch1;
+ 435:Core/Src/app_calc.c ****       ch2_eff = avg_ch2;
+ 436:Core/Src/app_calc.c ****     }
+ 437:Core/Src/app_calc.c ****   }
+ 438:Core/Src/app_calc.c ****   if (snap.rpm_count > 0U)
+ 1794              		.loc 1 438 3 is_stmt 1 view .LVU474
+ 1795              		.loc 1 438 11 is_stmt 0 view .LVU475
+ 1796 0100 249E     		ldr	r6, [sp, #144]
+ 1797              		.loc 1 438 6 view .LVU476
+ 1798 0102 002E     		cmp	r6, #0
+ 1799 0104 63D0     		beq	.L108
+ 439:Core/Src/app_calc.c ****   {
+ 440:Core/Src/app_calc.c ****     avg_rpm = snap.rpm_sum / (float)snap.rpm_count;
+ 1800              		.loc 1 440 5 is_stmt 1 view .LVU477
+ 1801              		.loc 1 440 30 is_stmt 0 view .LVU478
+ 1802 0106 07EE906A 		vmov	s15, r6	@ int
+ 1803 010a F8EE677A 		vcvt.f32.u32	s15, s15
+ 1804              		.loc 1 440 13 view .LVU479
+ 1805 010e 9DED227A 		vldr.32	s14, [sp, #136]
+ 1806 0112 87EE279A 		vdiv.f32	s18, s14, s15
+ 1807              	.LVL153:
+ 1808              	.L104:
+ 441:Core/Src/app_calc.c ****   }
+ 442:Core/Src/app_calc.c **** 
+ 443:Core/Src/app_calc.c ****   strain_ch1 = (ch1_eff - zero_voltage_ch1) * s_strain_coeff[0];
+ 1809              		.loc 1 443 3 is_stmt 1 view .LVU480
+ 1810              		.loc 1 443 25 is_stmt 0 view .LVU481
+ 1811 0116 38EE698A 		vsub.f32	s16, s16, s19
+ 1812              	.LVL154:
+ 1813              		.loc 1 443 61 view .LVU482
+ 1814 011a 314B     		ldr	r3, .L114+8
+ 1815 011c D3ED007A 		vldr.32	s15, [r3]
+ 1816              		.loc 1 443 14 view .LVU483
+ 1817 0120 28EE278A 		vmul.f32	s16, s16, s15
+ 1818              	.LVL155:
+ 444:Core/Src/app_calc.c ****   strain_ch2 = (ch2_eff - zero_voltage_ch2) * s_strain_coeff[1];
+ 1819              		.loc 1 444 3 is_stmt 1 view .LVU484
+ 1820              		.loc 1 444 25 is_stmt 0 view .LVU485
+ 1821 0124 30EE680A 		vsub.f32	s0, s0, s17
+ 1822              	.LVL156:
+ 1823              		.loc 1 444 61 view .LVU486
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 42
+
+
+ 1824 0128 D3ED017A 		vldr.32	s15, [r3, #4]
+ 1825              		.loc 1 444 14 view .LVU487
+ 1826 012c 20EE270A 		vmul.f32	s0, s0, s15
+ 1827              	.LVL157:
+ 445:Core/Src/app_calc.c ****   micro_strain_ch1 = strain_ch1 * MICRO_STRAIN_SCALE;
+ 1828              		.loc 1 445 3 is_stmt 1 view .LVU488
+ 446:Core/Src/app_calc.c ****   micro_strain_ch2 = strain_ch2 * MICRO_STRAIN_SCALE;
+ 1829              		.loc 1 446 3 view .LVU489
+ 447:Core/Src/app_calc.c ****   torque_knm_calc = (strain_ch1 * s_torque_coeff) / 1000.0f;
+ 1830              		.loc 1 447 3 view .LVU490
+ 1831              		.loc 1 447 33 is_stmt 0 view .LVU491
+ 1832 0130 2C4B     		ldr	r3, .L114+12
+ 1833 0132 D3ED007A 		vldr.32	s15, [r3]
+ 1834 0136 28EE278A 		vmul.f32	s16, s16, s15
+ 1835              	.LVL158:
+ 1836              		.loc 1 447 19 view .LVU492
+ 1837 013a DFED2B7A 		vldr.32	s15, .L114+16
+ 1838 013e C8EE278A 		vdiv.f32	s17, s16, s15
+ 1839              	.LVL159:
+ 448:Core/Src/app_calc.c ****   thrust_kn_calc = (strain_ch2 * s_thrust_coeff) / 1000.0f;
+ 1840              		.loc 1 448 3 is_stmt 1 view .LVU493
+ 1841              		.loc 1 448 32 is_stmt 0 view .LVU494
+ 1842 0142 2A4B     		ldr	r3, .L114+20
+ 1843 0144 93ED007A 		vldr.32	s14, [r3]
+ 1844 0148 20EE070A 		vmul.f32	s0, s0, s14
+ 1845              	.LVL160:
+ 1846              		.loc 1 448 18 view .LVU495
+ 1847 014c C0EE279A 		vdiv.f32	s19, s0, s15
+ 1848              	.LVL161:
+ 449:Core/Src/app_calc.c ****   power_kw_calc = torque_knm_calc * avg_rpm * OMEGA_PER_RPM;
+ 1849              		.loc 1 449 3 is_stmt 1 view .LVU496
+ 1850              		.loc 1 449 35 is_stmt 0 view .LVU497
+ 1851 0150 29EE288A 		vmul.f32	s16, s18, s17
+ 1852              		.loc 1 449 17 view .LVU498
+ 1853 0154 DFED267A 		vldr.32	s15, .L114+24
+ 1854 0158 28EE278A 		vmul.f32	s16, s16, s15
+ 1855              	.LVL162:
+ 450:Core/Src/app_calc.c **** 
+ 451:Core/Src/app_calc.c ****   out->timestamp_ms = HAL_GetTick();
+ 1856              		.loc 1 451 3 is_stmt 1 view .LVU499
+ 1857              		.loc 1 451 23 is_stmt 0 view .LVU500
+ 1858 015c FFF7FEFF 		bl	HAL_GetTick
+ 1859              	.LVL163:
+ 1860              		.loc 1 451 21 discriminator 1 view .LVU501
+ 1861 0160 2060     		str	r0, [r4]
+ 452:Core/Src/app_calc.c ****   out->torque = torque_knm_calc;
+ 1862              		.loc 1 452 3 is_stmt 1 view .LVU502
+ 1863              		.loc 1 452 15 is_stmt 0 view .LVU503
+ 1864 0162 C4ED018A 		vstr.32	s17, [r4, #4]
+ 453:Core/Src/app_calc.c ****   out->thrust = thrust_kn_calc;
+ 1865              		.loc 1 453 3 is_stmt 1 view .LVU504
+ 1866              		.loc 1 453 15 is_stmt 0 view .LVU505
+ 1867 0166 C4ED029A 		vstr.32	s19, [r4, #8]
+ 454:Core/Src/app_calc.c ****   out->rpm = avg_rpm;
+ 1868              		.loc 1 454 3 is_stmt 1 view .LVU506
+ 1869              		.loc 1 454 12 is_stmt 0 view .LVU507
+ 1870 016a 84ED039A 		vstr.32	s18, [r4, #12]
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 43
+
+
+ 455:Core/Src/app_calc.c ****   out->power = power_kw_calc;
+ 1871              		.loc 1 455 3 is_stmt 1 view .LVU508
+ 1872              		.loc 1 455 14 is_stmt 0 view .LVU509
+ 1873 016e 84ED048A 		vstr.32	s16, [r4, #16]
+ 456:Core/Src/app_calc.c ****   out->status_flags = (((uint32_t)values_snap.flag_avg_power & 0x1U) << 16) |
+ 1874              		.loc 1 456 3 is_stmt 1 view .LVU510
+ 1875              		.loc 1 456 46 is_stmt 0 view .LVU511
+ 1876 0172 BDF86030 		ldrh	r3, [sp, #96]
+ 1877              		.loc 1 456 70 view .LVU512
+ 1878 0176 1B04     		lsls	r3, r3, #16
+ 1879 0178 03F48033 		and	r3, r3, #65536
+ 457:Core/Src/app_calc.c ****                       (((uint32_t)values_snap.flag_axis_param & 0x1U) << 17) |
+ 1880              		.loc 1 457 46 view .LVU513
+ 1881 017c BDF86220 		ldrh	r2, [sp, #98]
+ 1882              		.loc 1 457 71 view .LVU514
+ 1883 0180 5204     		lsls	r2, r2, #17
+ 1884 0182 02F40032 		and	r2, r2, #131072
+ 456:Core/Src/app_calc.c ****   out->status_flags = (((uint32_t)values_snap.flag_avg_power & 0x1U) << 16) |
+ 1885              		.loc 1 456 77 view .LVU515
+ 1886 0186 1343     		orrs	r3, r3, r2
+ 458:Core/Src/app_calc.c ****                       (((uint32_t)values_snap.flag_meas_param & 0x1U) << 18) |
+ 1887              		.loc 1 458 46 view .LVU516
+ 1888 0188 BDF86420 		ldrh	r2, [sp, #100]
+ 1889              		.loc 1 458 71 view .LVU517
+ 1890 018c 9204     		lsls	r2, r2, #18
+ 1891 018e 02F48022 		and	r2, r2, #262144
+ 457:Core/Src/app_calc.c ****                       (((uint32_t)values_snap.flag_axis_param & 0x1U) << 17) |
+ 1892              		.loc 1 457 78 view .LVU518
+ 1893 0192 1343     		orrs	r3, r3, r2
+ 459:Core/Src/app_calc.c ****                       ((snap.sample_count & 0xFFU) << 8) |
+ 1894              		.loc 1 459 29 view .LVU519
+ 1895 0194 239A     		ldr	r2, [sp, #140]
+ 1896              		.loc 1 459 52 view .LVU520
+ 1897 0196 1202     		lsls	r2, r2, #8
+ 1898 0198 92B2     		uxth	r2, r2
+ 458:Core/Src/app_calc.c ****                       (((uint32_t)values_snap.flag_meas_param & 0x1U) << 18) |
+ 1899              		.loc 1 458 78 view .LVU521
+ 1900 019a 1343     		orrs	r3, r3, r2
+ 460:Core/Src/app_calc.c ****                       (snap.rpm_count & 0xFFU);
+ 1901              		.loc 1 460 39 view .LVU522
+ 1902 019c F6B2     		uxtb	r6, r6
+ 459:Core/Src/app_calc.c ****                       ((snap.sample_count & 0xFFU) << 8) |
+ 1903              		.loc 1 459 58 view .LVU523
+ 1904 019e 3343     		orrs	r3, r3, r6
+ 456:Core/Src/app_calc.c ****                       (((uint32_t)values_snap.flag_axis_param & 0x1U) << 17) |
+ 1905              		.loc 1 456 21 view .LVU524
+ 1906 01a0 6361     		str	r3, [r4, #20]
+ 461:Core/Src/app_calc.c **** 
+ 462:Core/Src/app_calc.c ****   if (ctx->diag != NULL)
+ 1907              		.loc 1 462 3 is_stmt 1 view .LVU525
+ 1908              		.loc 1 462 10 is_stmt 0 view .LVU526
+ 1909 01a2 EA68     		ldr	r2, [r5, #12]
+ 1910              		.loc 1 462 6 view .LVU527
+ 1911 01a4 52B1     		cbz	r2, .L97
+ 463:Core/Src/app_calc.c ****   {
+ 464:Core/Src/app_calc.c ****     out->status_flags |= ((ctx->diag->uart2_req_fail & 0x0FU) << 24);
+ 1912              		.loc 1 464 5 is_stmt 1 view .LVU528
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 44
+
+
+ 1913              		.loc 1 464 37 is_stmt 0 view .LVU529
+ 1914 01a6 1269     		ldr	r2, [r2, #16]
+ 1915              		.loc 1 464 63 view .LVU530
+ 1916 01a8 1206     		lsls	r2, r2, #24
+ 1917 01aa 02F07062 		and	r2, r2, #251658240
+ 1918              		.loc 1 464 23 view .LVU531
+ 1919 01ae 1343     		orrs	r3, r3, r2
+ 1920 01b0 6361     		str	r3, [r4, #20]
+ 465:Core/Src/app_calc.c ****     out->status_flags |= ((ctx->diag->sd_write_fail & 0x0FU) << 28);
+ 1921              		.loc 1 465 5 is_stmt 1 view .LVU532
+ 1922              		.loc 1 465 31 is_stmt 0 view .LVU533
+ 1923 01b2 EA68     		ldr	r2, [r5, #12]
+ 1924              		.loc 1 465 37 view .LVU534
+ 1925 01b4 D269     		ldr	r2, [r2, #28]
+ 1926              		.loc 1 465 23 view .LVU535
+ 1927 01b6 43EA0273 		orr	r3, r3, r2, lsl #28
+ 1928 01ba 6361     		str	r3, [r4, #20]
+ 1929              	.LVL164:
+ 1930              	.L97:
+ 466:Core/Src/app_calc.c ****   }
+ 467:Core/Src/app_calc.c **** 
+ 468:Core/Src/app_calc.c **** #if APP_CALC_LOG_DETAIL
+ 469:Core/Src/app_calc.c ****   LOGI("[CALC] samples=%lu rpm_cnt=%lu avg_ch1=%.6f avg_ch2=%.6f eff_ch1=%.6f eff_ch2=%.6f\r\n",
+ 470:Core/Src/app_calc.c ****        (unsigned long)snap.sample_count,
+ 471:Core/Src/app_calc.c ****        (unsigned long)snap.rpm_count,
+ 472:Core/Src/app_calc.c ****        (double)avg_ch1,
+ 473:Core/Src/app_calc.c ****        (double)avg_ch2,
+ 474:Core/Src/app_calc.c ****        (double)ch1_eff,
+ 475:Core/Src/app_calc.c ****        (double)ch2_eff);
+ 476:Core/Src/app_calc.c ****   LOGI("[CALC] zero1=%.6f zero2=%.6f strain1=%.9f strain2=%.9f micro1=%.3f micro2=%.3f\r\n",
+ 477:Core/Src/app_calc.c ****        (double)zero_voltage_ch1,
+ 478:Core/Src/app_calc.c ****        (double)zero_voltage_ch2,
+ 479:Core/Src/app_calc.c ****        (double)strain_ch1,
+ 480:Core/Src/app_calc.c ****        (double)strain_ch2,
+ 481:Core/Src/app_calc.c ****        (double)micro_strain_ch1,
+ 482:Core/Src/app_calc.c ****        (double)micro_strain_ch2);
+ 483:Core/Src/app_calc.c ****   LOGI("[CALC] coeff torque=%.9f thrust=%.9f strain_coeff1=%.9f strain_coeff2=%.9f\r\n",
+ 484:Core/Src/app_calc.c ****        (double)s_torque_coeff,
+ 485:Core/Src/app_calc.c ****        (double)s_thrust_coeff,
+ 486:Core/Src/app_calc.c ****        (double)s_strain_coeff[0],
+ 487:Core/Src/app_calc.c ****        (double)s_strain_coeff[1]);
+ 488:Core/Src/app_calc.c ****   LOGI("[CALC] result torque=%.6f thrust=%.6f rpm=%.3f power=%.6f status=0x%08lX\r\n",
+ 489:Core/Src/app_calc.c ****        (double)out->torque,
+ 490:Core/Src/app_calc.c ****        (double)out->thrust,
+ 491:Core/Src/app_calc.c ****        (double)out->rpm,
+ 492:Core/Src/app_calc.c ****        (double)out->power,
+ 493:Core/Src/app_calc.c ****        (unsigned long)out->status_flags);
+ 494:Core/Src/app_calc.c **** #endif
+ 495:Core/Src/app_calc.c **** }
+ 1931              		.loc 1 495 1 view .LVU536
+ 1932 01bc 27B0     		add	sp, sp, #156
+ 1933              	.LCFI24:
+ 1934              		.cfi_remember_state
+ 1935              		.cfi_def_cfa_offset 36
+ 1936              		@ sp needed
+ 1937 01be BDEC048B 		vldm	sp!, {d8-d9}
+ 1938              	.LCFI25:
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 45
+
+
+ 1939              		.cfi_restore 82
+ 1940              		.cfi_restore 83
+ 1941              		.cfi_restore 80
+ 1942              		.cfi_restore 81
+ 1943              		.cfi_def_cfa_offset 20
+ 1944 01c2 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 1945              	.LVL165:
+ 1946              	.L107:
+ 1947              	.LCFI26:
+ 1948              		.cfi_restore_state
+ 421:Core/Src/app_calc.c ****   }
+ 1949              		.loc 1 421 13 view .LVU537
+ 1950 01c4 B0EE680A 		vmov.f32	s0, s17
+ 420:Core/Src/app_calc.c ****     ch2_eff = zero_voltage_ch2;
+ 1951              		.loc 1 420 13 view .LVU538
+ 1952 01c8 B0EE698A 		vmov.f32	s16, s19
+ 1953 01cc 98E7     		b	.L103
+ 1954              	.LVL166:
+ 1955              	.L108:
+ 377:Core/Src/app_calc.c ****   float ch1_eff = 0.0f;
+ 1956              		.loc 1 377 9 view .LVU539
+ 1957 01ce 9FED099A 		vldr.32	s18, .L114+28
+ 1958 01d2 A0E7     		b	.L104
+ 1959              	.LVL167:
+ 1960              	.L110:
+ 1961              	.LCFI27:
+ 1962              		.cfi_def_cfa_offset 0
+ 1963              		.cfi_restore 4
+ 1964              		.cfi_restore 5
+ 1965              		.cfi_restore 6
+ 1966              		.cfi_restore 7
+ 1967              		.cfi_restore 14
+ 1968              		.cfi_restore 80
+ 1969              		.cfi_restore 81
+ 1970              		.cfi_restore 82
+ 1971              		.cfi_restore 83
+ 377:Core/Src/app_calc.c ****   float ch1_eff = 0.0f;
+ 1972              		.loc 1 377 9 view .LVU540
+ 1973 01d4 7047     		bx	lr
+ 1974              	.L115:
+ 1975 01d6 00BF     		.align	2
+ 1976              	.L114:
+ 1977 01d8 00000000 		.word	s_calc_accum
+ 1978 01dc 00000000 		.word	s_force_zero_input
+ 1979 01e0 00000000 		.word	s_strain_coeff
+ 1980 01e4 00000000 		.word	s_torque_coeff
+ 1981 01e8 00007A44 		.word	1148846080
+ 1982 01ec 00000000 		.word	s_thrust_coeff
+ 1983 01f0 5077D63D 		.word	1037465424
+ 1984 01f4 00000000 		.word	0
+ 1985              		.cfi_endproc
+ 1986              	.LFE255:
+ 1988              		.section	.bss.s_modulus_e_gpa,"aw",%nobits
+ 1989              		.align	2
+ 1992              	s_modulus_e_gpa:
+ 1993 0000 00000000 		.space	4
+ 1994              		.section	.bss.s_modulus_g_gpa,"aw",%nobits
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 46
+
+
+ 1995              		.align	2
+ 1998              	s_modulus_g_gpa:
+ 1999 0000 00000000 		.space	4
+ 2000              		.section	.data.s_last_modulus_select,"aw"
+ 2001              		.align	1
+ 2004              	s_last_modulus_select:
+ 2005 0000 FFFF     		.short	-1
+ 2006              		.section	.data.s_last_prop_dir,"aw"
+ 2007              		.align	1
+ 2010              	s_last_prop_dir:
+ 2011 0000 FFFF     		.short	-1
+ 2012              		.section	.bss.s_last_inner_mm,"aw",%nobits
+ 2013              		.align	2
+ 2016              	s_last_inner_mm:
+ 2017 0000 00000000 		.space	4
+ 2018              		.section	.bss.s_last_outer_mm,"aw",%nobits
+ 2019              		.align	2
+ 2022              	s_last_outer_mm:
+ 2023 0000 00000000 		.space	4
+ 2024              		.section	.bss.s_last_poisson_ratio,"aw",%nobits
+ 2025              		.align	2
+ 2028              	s_last_poisson_ratio:
+ 2029 0000 00000000 		.space	4
+ 2030              		.section	.bss.s_last_elastic_mod_gpa,"aw",%nobits
+ 2031              		.align	2
+ 2034              	s_last_elastic_mod_gpa:
+ 2035 0000 00000000 		.space	4
+ 2036              		.section	.bss.s_last_shear_mod_gpa,"aw",%nobits
+ 2037              		.align	2
+ 2040              	s_last_shear_mod_gpa:
+ 2041 0000 00000000 		.space	4
+ 2042              		.section	.bss.s_last_gauge_sens,"aw",%nobits
+ 2043              		.align	2
+ 2046              	s_last_gauge_sens:
+ 2047 0000 00000000 		.space	8
+ 2047      00000000 
+ 2048              		.section	.bss.s_last_calib_factor,"aw",%nobits
+ 2049              		.align	2
+ 2052              	s_last_calib_factor:
+ 2053 0000 00000000 		.space	8
+ 2053      00000000 
+ 2054              		.section	.bss.s_thrust_coeff,"aw",%nobits
+ 2055              		.align	2
+ 2058              	s_thrust_coeff:
+ 2059 0000 00000000 		.space	4
+ 2060              		.section	.bss.s_torque_coeff,"aw",%nobits
+ 2061              		.align	2
+ 2064              	s_torque_coeff:
+ 2065 0000 00000000 		.space	4
+ 2066              		.section	.data.s_strain_coeff,"aw"
+ 2067              		.align	2
+ 2070              	s_strain_coeff:
+ 2071 0000 0000803F 		.word	1065353216
+ 2072 0004 0000803F 		.word	1065353216
+ 2073              		.section	.bss.s_force_zero_input,"aw",%nobits
+ 2076              	s_force_zero_input:
+ 2077 0000 00       		.space	1
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 47
+
+
+ 2078              		.section	.bss.s_zero_avg_mode,"aw",%nobits
+ 2079              		.align	1
+ 2082              	s_zero_avg_mode:
+ 2083 0000 0000     		.space	2
+ 2084              		.section	.bss.s_zero_count,"aw",%nobits
+ 2085              		.align	2
+ 2088              	s_zero_count:
+ 2089 0000 00000000 		.space	4
+ 2090              		.section	.bss.s_zero_sq_sum_ch2,"aw",%nobits
+ 2091              		.align	3
+ 2094              	s_zero_sq_sum_ch2:
+ 2095 0000 00000000 		.space	8
+ 2095      00000000 
+ 2096              		.section	.bss.s_zero_sq_sum_ch1,"aw",%nobits
+ 2097              		.align	3
+ 2100              	s_zero_sq_sum_ch1:
+ 2101 0000 00000000 		.space	8
+ 2101      00000000 
+ 2102              		.section	.bss.s_zero_sum_ch2,"aw",%nobits
+ 2103              		.align	3
+ 2106              	s_zero_sum_ch2:
+ 2107 0000 00000000 		.space	8
+ 2107      00000000 
+ 2108              		.section	.bss.s_zero_sum_ch1,"aw",%nobits
+ 2109              		.align	3
+ 2112              	s_zero_sum_ch1:
+ 2113 0000 00000000 		.space	8
+ 2113      00000000 
+ 2114              		.section	.bss.s_zero_collecting,"aw",%nobits
+ 2117              	s_zero_collecting:
+ 2118 0000 00       		.space	1
+ 2119              		.section	.bss.s_calc_accum,"aw",%nobits
+ 2120              		.align	3
+ 2123              	s_calc_accum:
+ 2124 0000 00000000 		.space	48
+ 2124      00000000 
+ 2124      00000000 
+ 2124      00000000 
+ 2124      00000000 
+ 2125              		.text
+ 2126              	.Letext0:
+ 2127              		.file 2 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 2128              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 2129              		.file 4 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/lib/gcc/arm-none-eabi/13.3.1/include/s
+ 2130              		.file 5 "Core/Inc/main.h"
+ 2131              		.file 6 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 2132              		.file 7 "Core/Inc/protocol_values.h"
+ 2133              		.file 8 "Core/Inc/app_calc.h"
+ 2134              		.file 9 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/math.h"
+ 2135              		.file 10 "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
+ 2136              		.file 11 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/string.h"
+ 2137              		.file 12 "<built-in>"
+ 2138              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 48
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 app_calc.c
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:22     .rodata.AppCalc_LogCoeffSnapshot.str1.4:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:32     .text.AppCalc_LogCoeffSnapshot:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:37     .text.AppCalc_LogCoeffSnapshot:00000000 AppCalc_LogCoeffSnapshot
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:174    .text.AppCalc_LogCoeffSnapshot:000000e0 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2058   .bss.s_thrust_coeff:00000000 s_thrust_coeff
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2064   .bss.s_torque_coeff:00000000 s_torque_coeff
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:182    .text.AppCalc_UpdateCoeffs:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:187    .text.AppCalc_UpdateCoeffs:00000000 AppCalc_UpdateCoeffs
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:697    .text.AppCalc_UpdateCoeffs:000002fc $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2052   .bss.s_last_calib_factor:00000000 s_last_calib_factor
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2046   .bss.s_last_gauge_sens:00000000 s_last_gauge_sens
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2040   .bss.s_last_shear_mod_gpa:00000000 s_last_shear_mod_gpa
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2034   .bss.s_last_elastic_mod_gpa:00000000 s_last_elastic_mod_gpa
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2028   .bss.s_last_poisson_ratio:00000000 s_last_poisson_ratio
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2022   .bss.s_last_outer_mm:00000000 s_last_outer_mm
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2016   .bss.s_last_inner_mm:00000000 s_last_inner_mm
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2010   .data.s_last_prop_dir:00000000 s_last_prop_dir
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2004   .data.s_last_modulus_select:00000000 s_last_modulus_select
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2070   .data.s_strain_coeff:00000000 s_strain_coeff
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1998   .bss.s_modulus_g_gpa:00000000 s_modulus_g_gpa
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1992   .bss.s_modulus_e_gpa:00000000 s_modulus_e_gpa
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:722    .text.AppCalc_RecomputeCoeffs:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:728    .text.AppCalc_RecomputeCoeffs:00000000 AppCalc_RecomputeCoeffs
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:750    .text.AppCalc_Init:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:756    .text.AppCalc_Init:00000000 AppCalc_Init
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:882    .text.AppCalc_Init:00000080 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2123   .bss.s_calc_accum:00000000 s_calc_accum
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2117   .bss.s_zero_collecting:00000000 s_zero_collecting
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2112   .bss.s_zero_sum_ch1:00000000 s_zero_sum_ch1
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2106   .bss.s_zero_sum_ch2:00000000 s_zero_sum_ch2
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2100   .bss.s_zero_sq_sum_ch1:00000000 s_zero_sq_sum_ch1
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2094   .bss.s_zero_sq_sum_ch2:00000000 s_zero_sq_sum_ch2
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2088   .bss.s_zero_count:00000000 s_zero_count
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2082   .bss.s_zero_avg_mode:00000000 s_zero_avg_mode
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:910    .text.AppCalc_FeedSample:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:916    .text.AppCalc_FeedSample:00000000 AppCalc_FeedSample
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1096   .text.AppCalc_FeedSample:00000110 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1107   .text.AppCalc_SetForceZeroInput:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1113   .text.AppCalc_SetForceZeroInput:00000000 AppCalc_SetForceZeroInput
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1136   .text.AppCalc_SetForceZeroInput:0000000c $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2076   .bss.s_force_zero_input:00000000 s_force_zero_input
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1141   .text.AppCalc_FeedRpm:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1147   .text.AppCalc_FeedRpm:00000000 AppCalc_FeedRpm
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1173   .text.AppCalc_FeedRpm:00000018 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1178   .text.AppCalc_ZeroCaptureStart:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1184   .text.AppCalc_ZeroCaptureStart:00000000 AppCalc_ZeroCaptureStart
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1243   .text.AppCalc_ZeroCaptureStart:0000003c $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1257   .text.AppCalc_ZeroCaptureStop:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1263   .text.AppCalc_ZeroCaptureStop:00000000 AppCalc_ZeroCaptureStop
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1504   .text.AppCalc_ZeroCaptureStop:000000d8 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1515   .text.AppCalc_ZeroCaptureGetState:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1521   .text.AppCalc_ZeroCaptureGetState:00000000 AppCalc_ZeroCaptureGetState
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1569   .text.AppCalc_ZeroCaptureGetState:00000020 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1575   .text.AppCalc_Compute1s:00000000 $t
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1581   .text.AppCalc_Compute1s:00000000 AppCalc_Compute1s
+ARM GAS  C:\Users\40918\AppData\Local\Temp\cctum50b.s 			page 49
+
+
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1977   .text.AppCalc_Compute1s:000001d8 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1989   .bss.s_modulus_e_gpa:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:1995   .bss.s_modulus_g_gpa:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2001   .data.s_last_modulus_select:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2007   .data.s_last_prop_dir:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2013   .bss.s_last_inner_mm:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2019   .bss.s_last_outer_mm:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2025   .bss.s_last_poisson_ratio:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2031   .bss.s_last_elastic_mod_gpa:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2037   .bss.s_last_shear_mod_gpa:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2043   .bss.s_last_gauge_sens:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2049   .bss.s_last_calib_factor:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2055   .bss.s_thrust_coeff:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2061   .bss.s_torque_coeff:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2067   .data.s_strain_coeff:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2077   .bss.s_force_zero_input:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2079   .bss.s_zero_avg_mode:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2085   .bss.s_zero_count:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2091   .bss.s_zero_sq_sum_ch2:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2097   .bss.s_zero_sq_sum_ch1:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2103   .bss.s_zero_sum_ch2:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2109   .bss.s_zero_sum_ch1:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2118   .bss.s_zero_collecting:00000000 $d
+C:\Users\40918\AppData\Local\Temp\cctum50b.s:2120   .bss.s_calc_accum:00000000 $d
+
+UNDEFINED SYMBOLS
+__aeabi_f2d
+printf
+memset
+__aeabi_dadd
+__aeabi_dmul
+vPortEnterCritical
+vPortExitCritical
+__aeabi_ui2d
+__aeabi_ddiv
+__aeabi_d2f
+sqrtf
+osMutexAcquire
+memcpy
+osMutexRelease
+HAL_GetTick

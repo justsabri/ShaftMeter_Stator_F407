@@ -1,0 +1,935 @@
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"rpm.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/rpm.c"
+  20              		.section	.text.RPM_AvgPush,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	RPM_AvgPush:
+  27              	.LVL0:
+  28              	.LFB239:
+   1:Core/Src/rpm.c **** #include "rpm.h"
+   2:Core/Src/rpm.c **** #include "main.h"
+   3:Core/Src/rpm.c **** 
+   4:Core/Src/rpm.c **** #define RPM_AVG_SAMPLE_CAP 128U
+   5:Core/Src/rpm.c **** 
+   6:Core/Src/rpm.c **** typedef struct
+   7:Core/Src/rpm.c **** {
+   8:Core/Src/rpm.c ****   uint32_t timestamp_us;
+   9:Core/Src/rpm.c ****   float rpm;
+  10:Core/Src/rpm.c **** } rpm_avg_sample_t;
+  11:Core/Src/rpm.c **** 
+  12:Core/Src/rpm.c **** typedef struct
+  13:Core/Src/rpm.c **** {
+  14:Core/Src/rpm.c ****   uint32_t last_ts_us;
+  15:Core/Src/rpm.c ****   uint32_t ppr;
+  16:Core/Src/rpm.c ****   uint32_t min_period_us;
+  17:Core/Src/rpm.c ****   uint32_t timeout_us;
+  18:Core/Src/rpm.c ****   uint32_t avg_window_us;
+  19:Core/Src/rpm.c ****   uint8_t avg_enable;
+  20:Core/Src/rpm.c ****   uint8_t has_last;
+  21:Core/Src/rpm.c ****   rpm_calc_result_t latest;
+  22:Core/Src/rpm.c ****   rpm_avg_sample_t avg_samples[RPM_AVG_SAMPLE_CAP];
+  23:Core/Src/rpm.c ****   uint16_t avg_head;
+  24:Core/Src/rpm.c ****   uint16_t avg_count;
+  25:Core/Src/rpm.c **** } rpm_ctx_t;
+  26:Core/Src/rpm.c **** 
+  27:Core/Src/rpm.c **** static rpm_ctx_t s_rpm_ctx;
+  28:Core/Src/rpm.c **** 
+  29:Core/Src/rpm.c **** static void RPM_AvgPush(uint32_t timestamp_us, float rpm)
+  30:Core/Src/rpm.c **** {
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 2
+
+
+  29              		.loc 1 30 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  31:Core/Src/rpm.c ****   s_rpm_ctx.avg_samples[s_rpm_ctx.avg_head].timestamp_us = timestamp_us;
+  34              		.loc 1 31 3 view .LVU1
+  35              		.loc 1 31 34 is_stmt 0 view .LVU2
+  36 0000 0A4A     		ldr	r2, .L3
+  37 0002 B2F82434 		ldrh	r3, [r2, #1060]
+  38              		.loc 1 31 58 view .LVU3
+  39 0006 191D     		adds	r1, r3, #4
+  40 0008 02EBC101 		add	r1, r2, r1, lsl #3
+  41 000c 4860     		str	r0, [r1, #4]
+  32:Core/Src/rpm.c ****   s_rpm_ctx.avg_samples[s_rpm_ctx.avg_head].rpm = rpm;
+  42              		.loc 1 32 3 is_stmt 1 view .LVU4
+  43              		.loc 1 32 49 is_stmt 0 view .LVU5
+  44 000e 81ED020A 		vstr.32	s0, [r1, #8]
+  33:Core/Src/rpm.c ****   s_rpm_ctx.avg_head = (uint16_t)((s_rpm_ctx.avg_head + 1U) % RPM_AVG_SAMPLE_CAP);
+  45              		.loc 1 33 3 is_stmt 1 view .LVU6
+  46              		.loc 1 33 24 is_stmt 0 view .LVU7
+  47 0012 0133     		adds	r3, r3, #1
+  48 0014 03F07F03 		and	r3, r3, #127
+  49              		.loc 1 33 22 view .LVU8
+  50 0018 A2F82434 		strh	r3, [r2, #1060]	@ movhi
+  34:Core/Src/rpm.c ****   if (s_rpm_ctx.avg_count < RPM_AVG_SAMPLE_CAP)
+  51              		.loc 1 34 3 is_stmt 1 view .LVU9
+  52              		.loc 1 34 16 is_stmt 0 view .LVU10
+  53 001c B2F82634 		ldrh	r3, [r2, #1062]
+  54              		.loc 1 34 6 view .LVU11
+  55 0020 7F2B     		cmp	r3, #127
+  56 0022 02D8     		bhi	.L1
+  35:Core/Src/rpm.c ****   {
+  36:Core/Src/rpm.c ****     s_rpm_ctx.avg_count++;
+  57              		.loc 1 36 5 is_stmt 1 view .LVU12
+  58              		.loc 1 36 24 is_stmt 0 view .LVU13
+  59 0024 0133     		adds	r3, r3, #1
+  60 0026 A2F82634 		strh	r3, [r2, #1062]	@ movhi
+  61              	.L1:
+  37:Core/Src/rpm.c ****   }
+  38:Core/Src/rpm.c **** }
+  62              		.loc 1 38 1 view .LVU14
+  63 002a 7047     		bx	lr
+  64              	.L4:
+  65              		.align	2
+  66              	.L3:
+  67 002c 00000000 		.word	s_rpm_ctx
+  68              		.cfi_endproc
+  69              	.LFE239:
+  71              		.global	__aeabi_f2d
+  72              		.global	__aeabi_dadd
+  73              		.global	__aeabi_ui2d
+  74              		.global	__aeabi_ddiv
+  75              		.global	__aeabi_d2f
+  76              		.section	.text.RPM_AvgQuery,"ax",%progbits
+  77              		.align	1
+  78              		.syntax unified
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 3
+
+
+  79              		.thumb
+  80              		.thumb_func
+  82              	RPM_AvgQuery:
+  83              	.LVL1:
+  84              	.LFB240:
+  39:Core/Src/rpm.c **** 
+  40:Core/Src/rpm.c **** static float RPM_AvgQuery(uint32_t timestamp_us)
+  41:Core/Src/rpm.c **** {
+  85              		.loc 1 41 1 is_stmt 1 view -0
+  86              		.cfi_startproc
+  87              		@ args = 0, pretend = 0, frame = 0
+  88              		@ frame_needed = 0, uses_anonymous_args = 0
+  89              		.loc 1 41 1 is_stmt 0 view .LVU16
+  90 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+  91              	.LCFI0:
+  92              		.cfi_def_cfa_offset 24
+  93              		.cfi_offset 4, -24
+  94              		.cfi_offset 5, -20
+  95              		.cfi_offset 6, -16
+  96              		.cfi_offset 7, -12
+  97              		.cfi_offset 8, -8
+  98              		.cfi_offset 14, -4
+  99 0004 8046     		mov	r8, r0
+  42:Core/Src/rpm.c ****   double sum = 0.0;
+ 100              		.loc 1 42 3 is_stmt 1 view .LVU17
+ 101              	.LVL2:
+  43:Core/Src/rpm.c ****   uint16_t used = 0U;
+ 102              		.loc 1 43 3 view .LVU18
+  44:Core/Src/rpm.c ****   uint16_t n;
+ 103              		.loc 1 44 3 view .LVU19
+  45:Core/Src/rpm.c **** 
+  46:Core/Src/rpm.c ****   for (n = 0U; n < s_rpm_ctx.avg_count; n++)
+ 104              		.loc 1 46 3 view .LVU20
+ 105              		.loc 1 46 10 is_stmt 0 view .LVU21
+ 106 0006 0026     		movs	r6, #0
+  43:Core/Src/rpm.c ****   uint16_t n;
+ 107              		.loc 1 43 12 view .LVU22
+ 108 0008 3746     		mov	r7, r6
+  42:Core/Src/rpm.c ****   uint16_t used = 0U;
+ 109              		.loc 1 42 10 view .LVU23
+ 110 000a 0024     		movs	r4, #0
+ 111 000c 0025     		movs	r5, #0
+ 112              		.loc 1 46 3 view .LVU24
+ 113 000e 12E0     		b	.L6
+ 114              	.LVL3:
+ 115              	.L12:
+ 116              	.LBB2:
+  47:Core/Src/rpm.c ****   {
+  48:Core/Src/rpm.c ****     uint16_t idx = (uint16_t)((s_rpm_ctx.avg_head + RPM_AVG_SAMPLE_CAP - 1U - n) % RPM_AVG_SAMPLE_C
+  49:Core/Src/rpm.c ****     uint32_t age_us = timestamp_us - s_rpm_ctx.avg_samples[idx].timestamp_us;
+  50:Core/Src/rpm.c ****     if (age_us > s_rpm_ctx.avg_window_us)
+  51:Core/Src/rpm.c ****     {
+  52:Core/Src/rpm.c ****       break;
+  53:Core/Src/rpm.c ****     }
+  54:Core/Src/rpm.c ****     sum += (double)s_rpm_ctx.avg_samples[idx].rpm;
+ 117              		.loc 1 54 5 is_stmt 1 view .LVU25
+ 118              		.loc 1 54 46 is_stmt 0 view .LVU26
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 4
+
+
+ 119 0010 0433     		adds	r3, r3, #4
+ 120              	.LVL4:
+ 121              		.loc 1 54 46 view .LVU27
+ 122 0012 1D4A     		ldr	r2, .L14
+ 123              	.LVL5:
+ 124              		.loc 1 54 46 view .LVU28
+ 125 0014 02EBC303 		add	r3, r2, r3, lsl #3
+ 126              	.LVL6:
+ 127              		.loc 1 54 12 view .LVU29
+ 128 0018 9868     		ldr	r0, [r3, #8]	@ float
+ 129 001a FFF7FEFF 		bl	__aeabi_f2d
+ 130              	.LVL7:
+ 131              		.loc 1 54 12 view .LVU30
+ 132 001e 0246     		mov	r2, r0
+ 133 0020 0B46     		mov	r3, r1
+ 134              		.loc 1 54 9 view .LVU31
+ 135 0022 2046     		mov	r0, r4
+ 136 0024 2946     		mov	r1, r5
+ 137 0026 FFF7FEFF 		bl	__aeabi_dadd
+ 138              	.LVL8:
+ 139 002a 0446     		mov	r4, r0
+ 140              	.LVL9:
+ 141              		.loc 1 54 9 view .LVU32
+ 142 002c 0D46     		mov	r5, r1
+ 143              	.LVL10:
+  55:Core/Src/rpm.c ****     used++;
+ 144              		.loc 1 55 5 is_stmt 1 view .LVU33
+ 145              		.loc 1 55 9 is_stmt 0 view .LVU34
+ 146 002e 0137     		adds	r7, r7, #1
+ 147              	.LVL11:
+ 148              		.loc 1 55 9 view .LVU35
+ 149 0030 BFB2     		uxth	r7, r7
+ 150              	.LVL12:
+ 151              		.loc 1 55 9 view .LVU36
+ 152              	.LBE2:
+  46:Core/Src/rpm.c ****   {
+ 153              		.loc 1 46 42 is_stmt 1 discriminator 2 view .LVU37
+ 154 0032 0136     		adds	r6, r6, #1
+ 155              	.LVL13:
+  46:Core/Src/rpm.c ****   {
+ 156              		.loc 1 46 42 is_stmt 0 discriminator 2 view .LVU38
+ 157 0034 B6B2     		uxth	r6, r6
+ 158              	.LVL14:
+ 159              	.L6:
+  46:Core/Src/rpm.c ****   {
+ 160              		.loc 1 46 18 is_stmt 1 discriminator 1 view .LVU39
+  46:Core/Src/rpm.c ****   {
+ 161              		.loc 1 46 29 is_stmt 0 discriminator 1 view .LVU40
+ 162 0036 144B     		ldr	r3, .L14
+ 163 0038 B3F82634 		ldrh	r3, [r3, #1062]
+  46:Core/Src/rpm.c ****   {
+ 164              		.loc 1 46 18 discriminator 1 view .LVU41
+ 165 003c B342     		cmp	r3, r6
+ 166 003e 0FD9     		bls	.L7
+ 167              	.LBB3:
+  48:Core/Src/rpm.c ****     uint32_t age_us = timestamp_us - s_rpm_ctx.avg_samples[idx].timestamp_us;
+ 168              		.loc 1 48 5 is_stmt 1 view .LVU42
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 5
+
+
+  48:Core/Src/rpm.c ****     uint32_t age_us = timestamp_us - s_rpm_ctx.avg_samples[idx].timestamp_us;
+ 169              		.loc 1 48 41 is_stmt 0 view .LVU43
+ 170 0040 1149     		ldr	r1, .L14
+ 171 0042 B1F82434 		ldrh	r3, [r1, #1060]
+  48:Core/Src/rpm.c ****     uint32_t age_us = timestamp_us - s_rpm_ctx.avg_samples[idx].timestamp_us;
+ 172              		.loc 1 48 77 view .LVU44
+ 173 0046 9B1B     		subs	r3, r3, r6
+ 174 0048 7F33     		adds	r3, r3, #127
+  48:Core/Src/rpm.c ****     uint32_t age_us = timestamp_us - s_rpm_ctx.avg_samples[idx].timestamp_us;
+ 175              		.loc 1 48 14 view .LVU45
+ 176 004a 03F07F03 		and	r3, r3, #127
+ 177              	.LVL15:
+  49:Core/Src/rpm.c ****     if (age_us > s_rpm_ctx.avg_window_us)
+ 178              		.loc 1 49 5 is_stmt 1 view .LVU46
+  49:Core/Src/rpm.c ****     if (age_us > s_rpm_ctx.avg_window_us)
+ 179              		.loc 1 49 64 is_stmt 0 view .LVU47
+ 180 004e 1A1D     		adds	r2, r3, #4
+ 181 0050 01EBC202 		add	r2, r1, r2, lsl #3
+ 182 0054 5268     		ldr	r2, [r2, #4]
+  49:Core/Src/rpm.c ****     if (age_us > s_rpm_ctx.avg_window_us)
+ 183              		.loc 1 49 14 view .LVU48
+ 184 0056 A8EB0202 		sub	r2, r8, r2
+ 185              	.LVL16:
+  50:Core/Src/rpm.c ****     {
+ 186              		.loc 1 50 5 is_stmt 1 view .LVU49
+  50:Core/Src/rpm.c ****     {
+ 187              		.loc 1 50 27 is_stmt 0 view .LVU50
+ 188 005a 0969     		ldr	r1, [r1, #16]
+  50:Core/Src/rpm.c ****     {
+ 189              		.loc 1 50 8 view .LVU51
+ 190 005c 9142     		cmp	r1, r2
+ 191 005e D7D2     		bcs	.L12
+ 192              	.LVL17:
+ 193              	.L7:
+  50:Core/Src/rpm.c ****     {
+ 194              		.loc 1 50 8 view .LVU52
+ 195              	.LBE3:
+  56:Core/Src/rpm.c ****   }
+  57:Core/Src/rpm.c **** 
+  58:Core/Src/rpm.c ****   if (used == 0U)
+ 196              		.loc 1 58 3 is_stmt 1 view .LVU53
+ 197              		.loc 1 58 6 is_stmt 0 view .LVU54
+ 198 0060 77B1     		cbz	r7, .L13
+  59:Core/Src/rpm.c ****   {
+  60:Core/Src/rpm.c ****     return s_rpm_ctx.latest.rpm;
+  61:Core/Src/rpm.c ****   }
+  62:Core/Src/rpm.c ****   return (float)(sum / (double)used);
+ 199              		.loc 1 62 3 is_stmt 1 view .LVU55
+ 200              		.loc 1 62 24 is_stmt 0 view .LVU56
+ 201 0062 3846     		mov	r0, r7
+ 202 0064 FFF7FEFF 		bl	__aeabi_ui2d
+ 203              	.LVL18:
+ 204 0068 0246     		mov	r2, r0
+ 205 006a 0B46     		mov	r3, r1
+ 206              		.loc 1 62 22 view .LVU57
+ 207 006c 2046     		mov	r0, r4
+ 208 006e 2946     		mov	r1, r5
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 6
+
+
+ 209 0070 FFF7FEFF 		bl	__aeabi_ddiv
+ 210              	.LVL19:
+ 211              		.loc 1 62 10 view .LVU58
+ 212 0074 FFF7FEFF 		bl	__aeabi_d2f
+ 213              	.LVL20:
+ 214 0078 00EE100A 		vmov	s0, r0
+ 215              	.L5:
+  63:Core/Src/rpm.c **** }
+ 216              		.loc 1 63 1 view .LVU59
+ 217 007c BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 218              	.LVL21:
+ 219              	.L13:
+  60:Core/Src/rpm.c ****   }
+ 220              		.loc 1 60 5 is_stmt 1 view .LVU60
+  60:Core/Src/rpm.c ****   }
+ 221              		.loc 1 60 28 is_stmt 0 view .LVU61
+ 222 0080 014B     		ldr	r3, .L14
+ 223 0082 93ED060A 		vldr.32	s0, [r3, #24]
+ 224 0086 F9E7     		b	.L5
+ 225              	.L15:
+ 226              		.align	2
+ 227              	.L14:
+ 228 0088 00000000 		.word	s_rpm_ctx
+ 229              		.cfi_endproc
+ 230              	.LFE240:
+ 232              		.section	.text.RPM_Init,"ax",%progbits
+ 233              		.align	1
+ 234              		.global	RPM_Init
+ 235              		.syntax unified
+ 236              		.thumb
+ 237              		.thumb_func
+ 239              	RPM_Init:
+ 240              	.LVL22:
+ 241              	.LFB241:
+  64:Core/Src/rpm.c **** 
+  65:Core/Src/rpm.c **** void RPM_Init(uint32_t pulses_per_rev,
+  66:Core/Src/rpm.c ****               uint32_t min_period_us,
+  67:Core/Src/rpm.c ****               uint32_t timeout_us,
+  68:Core/Src/rpm.c ****               uint32_t avg_window_us,
+  69:Core/Src/rpm.c ****               uint8_t avg_enable)
+  70:Core/Src/rpm.c **** {
+ 242              		.loc 1 70 1 is_stmt 1 view -0
+ 243              		.cfi_startproc
+ 244              		@ args = 4, pretend = 0, frame = 0
+ 245              		@ frame_needed = 0, uses_anonymous_args = 0
+ 246              		@ link register save eliminated.
+ 247              		.loc 1 70 1 is_stmt 0 view .LVU63
+ 248 0000 70B4     		push	{r4, r5, r6}
+ 249              	.LCFI1:
+ 250              		.cfi_def_cfa_offset 12
+ 251              		.cfi_offset 4, -12
+ 252              		.cfi_offset 5, -8
+ 253              		.cfi_offset 6, -4
+ 254 0002 9DF80C40 		ldrb	r4, [sp, #12]	@ zero_extendqisi2
+  71:Core/Src/rpm.c ****   s_rpm_ctx.last_ts_us = 0U;
+ 255              		.loc 1 71 3 is_stmt 1 view .LVU64
+ 256              		.loc 1 71 24 is_stmt 0 view .LVU65
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 7
+
+
+ 257 0006 124D     		ldr	r5, .L27
+ 258 0008 0026     		movs	r6, #0
+ 259 000a 2E60     		str	r6, [r5]
+  72:Core/Src/rpm.c ****   s_rpm_ctx.ppr = (pulses_per_rev == 0U) ? 1U : pulses_per_rev;
+ 260              		.loc 1 72 3 is_stmt 1 view .LVU66
+ 261              		.loc 1 72 47 is_stmt 0 view .LVU67
+ 262 000c 0546     		mov	r5, r0
+ 263 000e 00B9     		cbnz	r0, .L17
+ 264              		.loc 1 72 47 discriminator 2 view .LVU68
+ 265 0010 0125     		movs	r5, #1
+ 266              	.L17:
+ 267              		.loc 1 72 17 discriminator 4 view .LVU69
+ 268 0012 0F48     		ldr	r0, .L27
+ 269              	.LVL23:
+ 270              		.loc 1 72 17 discriminator 4 view .LVU70
+ 271 0014 4560     		str	r5, [r0, #4]
+  73:Core/Src/rpm.c ****   s_rpm_ctx.min_period_us = (min_period_us == 0U) ? 200U : min_period_us;
+ 272              		.loc 1 73 3 is_stmt 1 view .LVU71
+ 273              		.loc 1 73 58 is_stmt 0 view .LVU72
+ 274 0016 01B9     		cbnz	r1, .L18
+ 275              		.loc 1 73 58 discriminator 2 view .LVU73
+ 276 0018 C821     		movs	r1, #200
+ 277              	.LVL24:
+ 278              	.L18:
+ 279              		.loc 1 73 27 discriminator 4 view .LVU74
+ 280 001a 0D48     		ldr	r0, .L27
+ 281 001c 8160     		str	r1, [r0, #8]
+  74:Core/Src/rpm.c ****   s_rpm_ctx.timeout_us = (timeout_us == 0U) ? 1000000U : timeout_us;
+ 282              		.loc 1 74 3 is_stmt 1 view .LVU75
+ 283              		.loc 1 74 56 is_stmt 0 view .LVU76
+ 284 001e 02B9     		cbnz	r2, .L19
+ 285              		.loc 1 74 56 discriminator 2 view .LVU77
+ 286 0020 0C4A     		ldr	r2, .L27+4
+ 287              	.LVL25:
+ 288              	.L19:
+ 289              		.loc 1 74 24 discriminator 4 view .LVU78
+ 290 0022 0B49     		ldr	r1, .L27
+ 291 0024 CA60     		str	r2, [r1, #12]
+  75:Core/Src/rpm.c ****   s_rpm_ctx.avg_window_us = (avg_window_us == 0U) ? 3000000U : avg_window_us;
+ 292              		.loc 1 75 3 is_stmt 1 view .LVU79
+ 293              		.loc 1 75 62 is_stmt 0 view .LVU80
+ 294 0026 03B9     		cbnz	r3, .L20
+ 295              		.loc 1 75 62 discriminator 2 view .LVU81
+ 296 0028 0B4B     		ldr	r3, .L27+8
+ 297              	.LVL26:
+ 298              	.L20:
+ 299              		.loc 1 75 27 discriminator 4 view .LVU82
+ 300 002a 094A     		ldr	r2, .L27
+ 301 002c 1361     		str	r3, [r2, #16]
+  76:Core/Src/rpm.c ****   s_rpm_ctx.avg_enable = (avg_enable != 0U) ? 1U : 0U;
+ 302              		.loc 1 76 3 is_stmt 1 view .LVU83
+ 303              		.loc 1 76 24 is_stmt 0 view .LVU84
+ 304 002e 04B1     		cbz	r4, .L21
+ 305              		.loc 1 76 24 discriminator 1 view .LVU85
+ 306 0030 0124     		movs	r4, #1
+ 307              	.L21:
+ 308              		.loc 1 76 24 discriminator 4 view .LVU86
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 8
+
+
+ 309 0032 074B     		ldr	r3, .L27
+ 310 0034 1C75     		strb	r4, [r3, #20]
+  77:Core/Src/rpm.c ****   s_rpm_ctx.has_last = 0U;
+ 311              		.loc 1 77 3 is_stmt 1 view .LVU87
+ 312              		.loc 1 77 22 is_stmt 0 view .LVU88
+ 313 0036 0022     		movs	r2, #0
+ 314 0038 5A75     		strb	r2, [r3, #21]
+  78:Core/Src/rpm.c ****   s_rpm_ctx.latest.rpm = 0.0f;
+ 315              		.loc 1 78 3 is_stmt 1 view .LVU89
+ 316              		.loc 1 78 24 is_stmt 0 view .LVU90
+ 317 003a 0021     		movs	r1, #0
+ 318 003c 9961     		str	r1, [r3, #24]	@ float
+  79:Core/Src/rpm.c ****   s_rpm_ctx.latest.period_us = 0U;
+ 319              		.loc 1 79 3 is_stmt 1 view .LVU91
+ 320              		.loc 1 79 30 is_stmt 0 view .LVU92
+ 321 003e DA61     		str	r2, [r3, #28]
+  80:Core/Src/rpm.c ****   s_rpm_ctx.latest.valid = 0U;
+ 322              		.loc 1 80 3 is_stmt 1 view .LVU93
+ 323              		.loc 1 80 26 is_stmt 0 view .LVU94
+ 324 0040 83F82020 		strb	r2, [r3, #32]
+  81:Core/Src/rpm.c ****   s_rpm_ctx.avg_head = 0U;
+ 325              		.loc 1 81 3 is_stmt 1 view .LVU95
+ 326              		.loc 1 81 22 is_stmt 0 view .LVU96
+ 327 0044 A3F82424 		strh	r2, [r3, #1060]	@ movhi
+  82:Core/Src/rpm.c ****   s_rpm_ctx.avg_count = 0U;
+ 328              		.loc 1 82 3 is_stmt 1 view .LVU97
+ 329              		.loc 1 82 23 is_stmt 0 view .LVU98
+ 330 0048 A3F82624 		strh	r2, [r3, #1062]	@ movhi
+  83:Core/Src/rpm.c **** }
+ 331              		.loc 1 83 1 view .LVU99
+ 332 004c 70BC     		pop	{r4, r5, r6}
+ 333              	.LCFI2:
+ 334              		.cfi_restore 6
+ 335              		.cfi_restore 5
+ 336              		.cfi_restore 4
+ 337              		.cfi_def_cfa_offset 0
+ 338              	.LVL27:
+ 339              		.loc 1 83 1 view .LVU100
+ 340 004e 7047     		bx	lr
+ 341              	.L28:
+ 342              		.align	2
+ 343              	.L27:
+ 344 0050 00000000 		.word	s_rpm_ctx
+ 345 0054 40420F00 		.word	1000000
+ 346 0058 C0C62D00 		.word	3000000
+ 347              		.cfi_endproc
+ 348              	.LFE241:
+ 350              		.section	.rodata.RPM_OnPulse.str1.4,"aMS",%progbits,1
+ 351              		.align	2
+ 352              	.LC0:
+ 353 0000 72706D3D 		.ascii	"rpm=%0.2f instant=%0.2f period_us=%lu avg_enable=%u"
+ 353      25302E32 
+ 353      6620696E 
+ 353      7374616E 
+ 353      743D2530 
+ 354 0033 20617667 		.ascii	" avg_window_us=%lu\015\012\000"
+ 354      5F77696E 
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 9
+
+
+ 354      646F775F 
+ 354      75733D25 
+ 354      6C750D0A 
+ 355              		.section	.text.RPM_OnPulse,"ax",%progbits
+ 356              		.align	1
+ 357              		.global	RPM_OnPulse
+ 358              		.syntax unified
+ 359              		.thumb
+ 360              		.thumb_func
+ 362              	RPM_OnPulse:
+ 363              	.LVL28:
+ 364              	.LFB242:
+  84:Core/Src/rpm.c **** 
+  85:Core/Src/rpm.c **** rpm_calc_result_t RPM_OnPulse(uint32_t timestamp_us)
+  86:Core/Src/rpm.c **** {
+ 365              		.loc 1 86 1 is_stmt 1 view -0
+ 366              		.cfi_startproc
+ 367              		@ args = 0, pretend = 0, frame = 0
+ 368              		@ frame_needed = 0, uses_anonymous_args = 0
+ 369              		.loc 1 86 1 is_stmt 0 view .LVU102
+ 370 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 371              	.LCFI3:
+ 372              		.cfi_def_cfa_offset 32
+ 373              		.cfi_offset 4, -32
+ 374              		.cfi_offset 5, -28
+ 375              		.cfi_offset 6, -24
+ 376              		.cfi_offset 7, -20
+ 377              		.cfi_offset 8, -16
+ 378              		.cfi_offset 9, -12
+ 379              		.cfi_offset 10, -8
+ 380              		.cfi_offset 14, -4
+ 381 0004 2DED028B 		vpush.64	{d8}
+ 382              	.LCFI4:
+ 383              		.cfi_def_cfa_offset 40
+ 384              		.cfi_offset 80, -40
+ 385              		.cfi_offset 81, -36
+ 386 0008 86B0     		sub	sp, sp, #24
+ 387              	.LCFI5:
+ 388              		.cfi_def_cfa_offset 64
+ 389 000a 0446     		mov	r4, r0
+ 390 000c 0D46     		mov	r5, r1
+  87:Core/Src/rpm.c ****   uint32_t delta_us;
+ 391              		.loc 1 87 3 is_stmt 1 view .LVU103
+  88:Core/Src/rpm.c ****   float instant_rpm;
+ 392              		.loc 1 88 3 view .LVU104
+  89:Core/Src/rpm.c **** 
+  90:Core/Src/rpm.c ****   if (s_rpm_ctx.has_last == 0U)
+ 393              		.loc 1 90 3 view .LVU105
+ 394              		.loc 1 90 16 is_stmt 0 view .LVU106
+ 395 000e 344B     		ldr	r3, .L39
+ 396 0010 5B7D     		ldrb	r3, [r3, #21]	@ zero_extendqisi2
+ 397              		.loc 1 90 6 view .LVU107
+ 398 0012 002B     		cmp	r3, #0
+ 399 0014 47D0     		beq	.L36
+  91:Core/Src/rpm.c ****   {
+  92:Core/Src/rpm.c ****     s_rpm_ctx.last_ts_us = timestamp_us;
+  93:Core/Src/rpm.c ****     s_rpm_ctx.has_last = 1U;
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 10
+
+
+  94:Core/Src/rpm.c ****     return s_rpm_ctx.latest;
+  95:Core/Src/rpm.c ****   }
+  96:Core/Src/rpm.c **** 
+  97:Core/Src/rpm.c ****   delta_us = timestamp_us - s_rpm_ctx.last_ts_us;
+ 400              		.loc 1 97 3 is_stmt 1 view .LVU108
+ 401              		.loc 1 97 38 is_stmt 0 view .LVU109
+ 402 0016 324A     		ldr	r2, .L39
+ 403 0018 1368     		ldr	r3, [r2]
+ 404              		.loc 1 97 12 view .LVU110
+ 405 001a CB1A     		subs	r3, r1, r3
+ 406              	.LVL29:
+  98:Core/Src/rpm.c ****   s_rpm_ctx.last_ts_us = timestamp_us;
+ 407              		.loc 1 98 3 is_stmt 1 view .LVU111
+ 408              		.loc 1 98 24 is_stmt 0 view .LVU112
+ 409 001c 1160     		str	r1, [r2]
+  99:Core/Src/rpm.c **** 
+ 100:Core/Src/rpm.c ****   if (delta_us < s_rpm_ctx.min_period_us)
+ 410              		.loc 1 100 3 is_stmt 1 view .LVU113
+ 411              		.loc 1 100 27 is_stmt 0 view .LVU114
+ 412 001e 9268     		ldr	r2, [r2, #8]
+ 413              		.loc 1 100 6 view .LVU115
+ 414 0020 9A42     		cmp	r2, r3
+ 415 0022 4AD8     		bhi	.L37
+ 101:Core/Src/rpm.c ****   {
+ 102:Core/Src/rpm.c ****     return s_rpm_ctx.latest;
+ 103:Core/Src/rpm.c ****   }
+ 104:Core/Src/rpm.c **** 
+ 105:Core/Src/rpm.c ****   s_rpm_ctx.latest.period_us = delta_us;
+ 416              		.loc 1 105 3 is_stmt 1 view .LVU116
+ 417              		.loc 1 105 30 is_stmt 0 view .LVU117
+ 418 0024 2E4A     		ldr	r2, .L39
+ 419 0026 D361     		str	r3, [r2, #28]
+ 106:Core/Src/rpm.c ****   instant_rpm = (60.0f * 1000000.0f) / ((float)delta_us * (float)s_rpm_ctx.ppr);
+ 420              		.loc 1 106 3 is_stmt 1 view .LVU118
+ 421              		.loc 1 106 41 is_stmt 0 view .LVU119
+ 422 0028 07EE903A 		vmov	s15, r3	@ int
+ 423 002c F8EE677A 		vcvt.f32.u32	s15, s15
+ 424              		.loc 1 106 59 view .LVU120
+ 425 0030 92ED017A 		vldr.32	s14, [r2, #4]	@ int
+ 426 0034 B8EE477A 		vcvt.f32.u32	s14, s14
+ 427              		.loc 1 106 57 view .LVU121
+ 428 0038 67EE877A 		vmul.f32	s15, s15, s14
+ 429              		.loc 1 106 15 view .LVU122
+ 430 003c 9FED297A 		vldr.32	s14, .L39+4
+ 431 0040 87EE278A 		vdiv.f32	s16, s14, s15
+ 432              	.LVL30:
+ 107:Core/Src/rpm.c ****   if (s_rpm_ctx.avg_enable != 0U)
+ 433              		.loc 1 107 3 is_stmt 1 view .LVU123
+ 434              		.loc 1 107 16 is_stmt 0 view .LVU124
+ 435 0044 137D     		ldrb	r3, [r2, #20]	@ zero_extendqisi2
+ 436              	.LVL31:
+ 437              		.loc 1 107 6 view .LVU125
+ 438 0046 002B     		cmp	r3, #0
+ 439 0048 3DD1     		bne	.L38
+ 108:Core/Src/rpm.c ****   {
+ 109:Core/Src/rpm.c ****     RPM_AvgPush(timestamp_us, instant_rpm);
+ 110:Core/Src/rpm.c ****     s_rpm_ctx.latest.rpm = RPM_AvgQuery(timestamp_us);
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 11
+
+
+ 111:Core/Src/rpm.c ****   }
+ 112:Core/Src/rpm.c ****   else
+ 113:Core/Src/rpm.c ****   {
+ 114:Core/Src/rpm.c ****     s_rpm_ctx.latest.rpm = instant_rpm;
+ 440              		.loc 1 114 5 is_stmt 1 view .LVU126
+ 441              		.loc 1 114 26 is_stmt 0 view .LVU127
+ 442 004a 254B     		ldr	r3, .L39
+ 443 004c 83ED068A 		vstr.32	s16, [r3, #24]
+ 444              	.LVL32:
+ 445              	.L34:
+ 115:Core/Src/rpm.c ****   }
+ 116:Core/Src/rpm.c ****   s_rpm_ctx.latest.valid = 1U;
+ 446              		.loc 1 116 3 is_stmt 1 view .LVU128
+ 447              		.loc 1 116 26 is_stmt 0 view .LVU129
+ 448 0050 234D     		ldr	r5, .L39
+ 449              	.LVL33:
+ 450              		.loc 1 116 26 view .LVU130
+ 451 0052 0123     		movs	r3, #1
+ 452 0054 85F82030 		strb	r3, [r5, #32]
+ 117:Core/Src/rpm.c ****   LOGI("rpm=%0.2f instant=%0.2f period_us=%lu avg_enable=%u avg_window_us=%lu\r\n",
+ 453              		.loc 1 117 3 is_stmt 1 view .LVU131
+ 454 0058 D5F81C80 		ldr	r8, [r5, #28]
+ 455 005c 95F81490 		ldrb	r9, [r5, #20]	@ zero_extendqisi2
+ 456 0060 D5F810A0 		ldr	r10, [r5, #16]
+ 457 0064 A869     		ldr	r0, [r5, #24]	@ float
+ 458 0066 FFF7FEFF 		bl	__aeabi_f2d
+ 459              	.LVL34:
+ 460 006a 0646     		mov	r6, r0
+ 461 006c 0F46     		mov	r7, r1
+ 462 006e CDF810A0 		str	r10, [sp, #16]
+ 463 0072 CDF80C90 		str	r9, [sp, #12]
+ 464 0076 CDF80880 		str	r8, [sp, #8]
+ 465 007a 18EE100A 		vmov	r0, s16
+ 466 007e FFF7FEFF 		bl	__aeabi_f2d
+ 467              	.LVL35:
+ 468 0082 CDE90001 		strd	r0, [sp]
+ 469 0086 3246     		mov	r2, r6
+ 470 0088 3B46     		mov	r3, r7
+ 471 008a 1748     		ldr	r0, .L39+8
+ 472 008c FFF7FEFF 		bl	printf
+ 473              	.LVL36:
+ 118:Core/Src/rpm.c ****        (double)s_rpm_ctx.latest.rpm,
+ 119:Core/Src/rpm.c ****        (double)instant_rpm,
+ 120:Core/Src/rpm.c ****        (unsigned long)(s_rpm_ctx.latest.period_us),
+ 121:Core/Src/rpm.c ****        (unsigned int)s_rpm_ctx.avg_enable,
+ 122:Core/Src/rpm.c ****        (unsigned long)s_rpm_ctx.avg_window_us);
+ 123:Core/Src/rpm.c ****   return s_rpm_ctx.latest;
+ 474              		.loc 1 123 3 view .LVU132
+ 475              		.loc 1 123 19 is_stmt 0 view .LVU133
+ 476 0090 1835     		adds	r5, r5, #24
+ 477 0092 95E80700 		ldm	r5, {r0, r1, r2}
+ 478 0096 84E80700 		stm	r4, {r0, r1, r2}
+ 479              	.LVL37:
+ 480              	.L29:
+ 124:Core/Src/rpm.c **** }
+ 481              		.loc 1 124 1 view .LVU134
+ 482 009a 2046     		mov	r0, r4
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 12
+
+
+ 483 009c 06B0     		add	sp, sp, #24
+ 484              	.LCFI6:
+ 485              		.cfi_remember_state
+ 486              		.cfi_def_cfa_offset 40
+ 487              		@ sp needed
+ 488 009e BDEC028B 		vldm	sp!, {d8}
+ 489              	.LCFI7:
+ 490              		.cfi_restore 80
+ 491              		.cfi_restore 81
+ 492              		.cfi_def_cfa_offset 32
+ 493 00a2 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 494              	.LVL38:
+ 495              	.L36:
+ 496              	.LCFI8:
+ 497              		.cfi_restore_state
+  92:Core/Src/rpm.c ****     s_rpm_ctx.has_last = 1U;
+ 498              		.loc 1 92 5 is_stmt 1 view .LVU135
+  92:Core/Src/rpm.c ****     s_rpm_ctx.has_last = 1U;
+ 499              		.loc 1 92 26 is_stmt 0 view .LVU136
+ 500 00a6 0E4B     		ldr	r3, .L39
+ 501 00a8 1960     		str	r1, [r3]
+  93:Core/Src/rpm.c ****     return s_rpm_ctx.latest;
+ 502              		.loc 1 93 5 is_stmt 1 view .LVU137
+  93:Core/Src/rpm.c ****     return s_rpm_ctx.latest;
+ 503              		.loc 1 93 24 is_stmt 0 view .LVU138
+ 504 00aa 0122     		movs	r2, #1
+ 505 00ac 5A75     		strb	r2, [r3, #21]
+  94:Core/Src/rpm.c ****   }
+ 506              		.loc 1 94 5 is_stmt 1 view .LVU139
+  94:Core/Src/rpm.c ****   }
+ 507              		.loc 1 94 21 is_stmt 0 view .LVU140
+ 508 00ae 1833     		adds	r3, r3, #24
+ 509 00b0 93E80700 		ldm	r3, {r0, r1, r2}
+ 510              	.LVL39:
+  94:Core/Src/rpm.c ****   }
+ 511              		.loc 1 94 21 view .LVU141
+ 512 00b4 84E80700 		stm	r4, {r0, r1, r2}
+ 513 00b8 EFE7     		b	.L29
+ 514              	.LVL40:
+ 515              	.L37:
+ 102:Core/Src/rpm.c ****   }
+ 516              		.loc 1 102 5 is_stmt 1 view .LVU142
+ 102:Core/Src/rpm.c ****   }
+ 517              		.loc 1 102 21 is_stmt 0 view .LVU143
+ 518 00ba 0C4B     		ldr	r3, .L39+12
+ 519              	.LVL41:
+ 102:Core/Src/rpm.c ****   }
+ 520              		.loc 1 102 21 view .LVU144
+ 521 00bc 93E80700 		ldm	r3, {r0, r1, r2}
+ 522              	.LVL42:
+ 102:Core/Src/rpm.c ****   }
+ 523              		.loc 1 102 21 view .LVU145
+ 524 00c0 84E80700 		stm	r4, {r0, r1, r2}
+ 525 00c4 E9E7     		b	.L29
+ 526              	.LVL43:
+ 527              	.L38:
+ 109:Core/Src/rpm.c ****     s_rpm_ctx.latest.rpm = RPM_AvgQuery(timestamp_us);
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 13
+
+
+ 528              		.loc 1 109 5 is_stmt 1 view .LVU146
+ 529 00c6 B0EE480A 		vmov.f32	s0, s16
+ 530 00ca 0846     		mov	r0, r1
+ 531              	.LVL44:
+ 109:Core/Src/rpm.c ****     s_rpm_ctx.latest.rpm = RPM_AvgQuery(timestamp_us);
+ 532              		.loc 1 109 5 is_stmt 0 view .LVU147
+ 533 00cc FFF7FEFF 		bl	RPM_AvgPush
+ 534              	.LVL45:
+ 110:Core/Src/rpm.c ****   }
+ 535              		.loc 1 110 5 is_stmt 1 view .LVU148
+ 110:Core/Src/rpm.c ****   }
+ 536              		.loc 1 110 28 is_stmt 0 view .LVU149
+ 537 00d0 2846     		mov	r0, r5
+ 538 00d2 FFF7FEFF 		bl	RPM_AvgQuery
+ 539              	.LVL46:
+ 110:Core/Src/rpm.c ****   }
+ 540              		.loc 1 110 26 discriminator 1 view .LVU150
+ 541 00d6 024B     		ldr	r3, .L39
+ 542 00d8 83ED060A 		vstr.32	s0, [r3, #24]
+ 543 00dc B8E7     		b	.L34
+ 544              	.L40:
+ 545 00de 00BF     		.align	2
+ 546              	.L39:
+ 547 00e0 00000000 		.word	s_rpm_ctx
+ 548 00e4 C0E1644C 		.word	1281679808
+ 549 00e8 00000000 		.word	.LC0
+ 550 00ec 18000000 		.word	s_rpm_ctx+24
+ 551              		.cfi_endproc
+ 552              	.LFE242:
+ 554              		.section	.rodata.RPM_OnPeriodicCheck.str1.4,"aMS",%progbits,1
+ 555              		.align	2
+ 556              	.LC1:
+ 557 0000 72706D20 		.ascii	"rpm timeout last_period_us=%lu idle_us=%lu timeout_"
+ 557      74696D65 
+ 557      6F757420 
+ 557      6C617374 
+ 557      5F706572 
+ 558 0033 75733D25 		.ascii	"us=%lu\015\012\000"
+ 558      6C750D0A 
+ 558      00
+ 559              		.section	.text.RPM_OnPeriodicCheck,"ax",%progbits
+ 560              		.align	1
+ 561              		.global	RPM_OnPeriodicCheck
+ 562              		.syntax unified
+ 563              		.thumb
+ 564              		.thumb_func
+ 566              	RPM_OnPeriodicCheck:
+ 567              	.LVL47:
+ 568              	.LFB243:
+ 125:Core/Src/rpm.c **** 
+ 126:Core/Src/rpm.c **** rpm_calc_result_t RPM_OnPeriodicCheck(uint32_t timestamp_us)
+ 127:Core/Src/rpm.c **** {
+ 569              		.loc 1 127 1 is_stmt 1 view -0
+ 570              		.cfi_startproc
+ 571              		@ args = 0, pretend = 0, frame = 0
+ 572              		@ frame_needed = 0, uses_anonymous_args = 0
+ 573              		.loc 1 127 1 is_stmt 0 view .LVU152
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 14
+
+
+ 574 0000 38B5     		push	{r3, r4, r5, lr}
+ 575              	.LCFI9:
+ 576              		.cfi_def_cfa_offset 16
+ 577              		.cfi_offset 3, -16
+ 578              		.cfi_offset 4, -12
+ 579              		.cfi_offset 5, -8
+ 580              		.cfi_offset 14, -4
+ 581 0002 0446     		mov	r4, r0
+ 128:Core/Src/rpm.c ****   if ((s_rpm_ctx.has_last != 0U) && ((timestamp_us - s_rpm_ctx.last_ts_us) > s_rpm_ctx.timeout_us))
+ 582              		.loc 1 128 3 is_stmt 1 view .LVU153
+ 583              		.loc 1 128 17 is_stmt 0 view .LVU154
+ 584 0004 124B     		ldr	r3, .L45
+ 585 0006 5B7D     		ldrb	r3, [r3, #21]	@ zero_extendqisi2
+ 586              		.loc 1 128 6 view .LVU155
+ 587 0008 6BB1     		cbz	r3, .L42
+ 588              		.loc 1 128 63 discriminator 1 view .LVU156
+ 589 000a 114B     		ldr	r3, .L45
+ 590 000c 1A68     		ldr	r2, [r3]
+ 591              		.loc 1 128 52 discriminator 1 view .LVU157
+ 592 000e 8A1A     		subs	r2, r1, r2
+ 593              		.loc 1 128 87 discriminator 1 view .LVU158
+ 594 0010 DB68     		ldr	r3, [r3, #12]
+ 595              		.loc 1 128 34 discriminator 1 view .LVU159
+ 596 0012 9A42     		cmp	r2, r3
+ 597 0014 07D9     		bls	.L42
+ 129:Core/Src/rpm.c ****   {
+ 130:Core/Src/rpm.c ****     if (s_rpm_ctx.latest.rpm != 0.0f)
+ 598              		.loc 1 130 5 is_stmt 1 view .LVU160
+ 599              		.loc 1 130 25 is_stmt 0 view .LVU161
+ 600 0016 0E49     		ldr	r1, .L45
+ 601              	.LVL48:
+ 602              		.loc 1 130 25 view .LVU162
+ 603 0018 D1ED067A 		vldr.32	s15, [r1, #24]
+ 604              		.loc 1 130 8 view .LVU163
+ 605 001c F5EE407A 		vcmp.f32	s15, #0
+ 606 0020 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 607 0024 06D1     		bne	.L44
+ 608              	.LVL49:
+ 609              	.L42:
+ 131:Core/Src/rpm.c ****     {
+ 132:Core/Src/rpm.c ****       LOGI("rpm timeout last_period_us=%lu idle_us=%lu timeout_us=%lu\r\n",
+ 133:Core/Src/rpm.c ****            (unsigned long)s_rpm_ctx.latest.period_us,
+ 134:Core/Src/rpm.c ****            (unsigned long)(timestamp_us - s_rpm_ctx.last_ts_us),
+ 135:Core/Src/rpm.c ****            (unsigned long)s_rpm_ctx.timeout_us);
+ 136:Core/Src/rpm.c ****       s_rpm_ctx.latest.rpm = 0.0f;
+ 137:Core/Src/rpm.c ****       s_rpm_ctx.latest.period_us = 0U;
+ 138:Core/Src/rpm.c ****       s_rpm_ctx.latest.valid = 1U;
+ 139:Core/Src/rpm.c ****     }
+ 140:Core/Src/rpm.c ****   }
+ 141:Core/Src/rpm.c ****   return s_rpm_ctx.latest;
+ 610              		.loc 1 141 3 is_stmt 1 view .LVU164
+ 611              		.loc 1 141 19 is_stmt 0 view .LVU165
+ 612 0026 0B4B     		ldr	r3, .L45+4
+ 613 0028 93E80700 		ldm	r3, {r0, r1, r2}
+ 614 002c 84E80700 		stm	r4, {r0, r1, r2}
+ 142:Core/Src/rpm.c **** }
+ 615              		.loc 1 142 1 view .LVU166
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 15
+
+
+ 616 0030 2046     		mov	r0, r4
+ 617 0032 38BD     		pop	{r3, r4, r5, pc}
+ 618              	.LVL50:
+ 619              	.L44:
+ 620              	.LBB4:
+ 132:Core/Src/rpm.c ****            (unsigned long)s_rpm_ctx.latest.period_us,
+ 621              		.loc 1 132 7 is_stmt 1 view .LVU167
+ 622 0034 0D46     		mov	r5, r1
+ 623 0036 C969     		ldr	r1, [r1, #28]
+ 624 0038 0748     		ldr	r0, .L45+8
+ 625              	.LVL51:
+ 132:Core/Src/rpm.c ****            (unsigned long)s_rpm_ctx.latest.period_us,
+ 626              		.loc 1 132 7 is_stmt 0 view .LVU168
+ 627 003a FFF7FEFF 		bl	printf
+ 628              	.LVL52:
+ 136:Core/Src/rpm.c ****       s_rpm_ctx.latest.period_us = 0U;
+ 629              		.loc 1 136 7 is_stmt 1 view .LVU169
+ 136:Core/Src/rpm.c ****       s_rpm_ctx.latest.period_us = 0U;
+ 630              		.loc 1 136 28 is_stmt 0 view .LVU170
+ 631 003e 0023     		movs	r3, #0
+ 632 0040 AB61     		str	r3, [r5, #24]	@ float
+ 137:Core/Src/rpm.c ****       s_rpm_ctx.latest.valid = 1U;
+ 633              		.loc 1 137 7 is_stmt 1 view .LVU171
+ 137:Core/Src/rpm.c ****       s_rpm_ctx.latest.valid = 1U;
+ 634              		.loc 1 137 34 is_stmt 0 view .LVU172
+ 635 0042 0023     		movs	r3, #0
+ 636 0044 EB61     		str	r3, [r5, #28]
+ 138:Core/Src/rpm.c ****     }
+ 637              		.loc 1 138 7 is_stmt 1 view .LVU173
+ 138:Core/Src/rpm.c ****     }
+ 638              		.loc 1 138 30 is_stmt 0 view .LVU174
+ 639 0046 0123     		movs	r3, #1
+ 640 0048 85F82030 		strb	r3, [r5, #32]
+ 641 004c EBE7     		b	.L42
+ 642              	.L46:
+ 643 004e 00BF     		.align	2
+ 644              	.L45:
+ 645 0050 00000000 		.word	s_rpm_ctx
+ 646 0054 18000000 		.word	s_rpm_ctx+24
+ 647 0058 00000000 		.word	.LC1
+ 648              	.LBE4:
+ 649              		.cfi_endproc
+ 650              	.LFE243:
+ 652              		.section	.bss.s_rpm_ctx,"aw",%nobits
+ 653              		.align	2
+ 656              	s_rpm_ctx:
+ 657 0000 00000000 		.space	1064
+ 657      00000000 
+ 657      00000000 
+ 657      00000000 
+ 657      00000000 
+ 658              		.text
+ 659              	.Letext0:
+ 660              		.file 2 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/machine/_default
+ 661              		.file 3 "D:/Tools/Arm GNU Toolchain arm-none-eabi/13.3 rel1/arm-none-eabi/include/sys/_stdint.h"
+ 662              		.file 4 "Core/Inc/rpm.h"
+ 663              		.file 5 "<built-in>"
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 16
+
+
+ARM GAS  C:\Users\40918\AppData\Local\Temp\ccHgkm77.s 			page 17
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 rpm.c
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:21     .text.RPM_AvgPush:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:26     .text.RPM_AvgPush:00000000 RPM_AvgPush
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:67     .text.RPM_AvgPush:0000002c $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:656    .bss.s_rpm_ctx:00000000 s_rpm_ctx
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:77     .text.RPM_AvgQuery:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:82     .text.RPM_AvgQuery:00000000 RPM_AvgQuery
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:228    .text.RPM_AvgQuery:00000088 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:233    .text.RPM_Init:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:239    .text.RPM_Init:00000000 RPM_Init
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:344    .text.RPM_Init:00000050 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:351    .rodata.RPM_OnPulse.str1.4:00000000 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:356    .text.RPM_OnPulse:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:362    .text.RPM_OnPulse:00000000 RPM_OnPulse
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:547    .text.RPM_OnPulse:000000e0 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:555    .rodata.RPM_OnPeriodicCheck.str1.4:00000000 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:560    .text.RPM_OnPeriodicCheck:00000000 $t
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:566    .text.RPM_OnPeriodicCheck:00000000 RPM_OnPeriodicCheck
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:645    .text.RPM_OnPeriodicCheck:00000050 $d
+C:\Users\40918\AppData\Local\Temp\ccHgkm77.s:653    .bss.s_rpm_ctx:00000000 $d
+
+UNDEFINED SYMBOLS
+__aeabi_f2d
+__aeabi_dadd
+__aeabi_ui2d
+__aeabi_ddiv
+__aeabi_d2f
+printf

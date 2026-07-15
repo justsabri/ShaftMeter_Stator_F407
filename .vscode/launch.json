@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32F407 JLink Debug",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/ShaftPower_Stator.elf",
+
+            "request": "launch",
+            "type": "cortex-debug",
+
+            "servertype": "jlink",
+
+            "device": "STM32F407ZG",
+            "interface": "swd",
+
+            "runToEntryPoint": "main",
+
+            "svdFile": "C:/ST/STM32CubeCLT/STMicroelectronics_CMSIS_SVD/STM32F4xx/STM32F407.svd",
+
+            "preLaunchTask": "build",
+
+            "serverpath": "D:\\Tools\\SEGGER\\JLink_V942\\JLinkGDBServerCL.exe",
+
+            "serverArgs": [
+                "-singlerun",
+                "-if", "SWD",
+                "-speed", "4000"
+            ]
+        }
+    ]
+}
