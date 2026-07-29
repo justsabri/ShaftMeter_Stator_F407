@@ -1,0 +1,5 @@
+build/
+.agents/
+.vscode/
+_docx_flowcharts/
+

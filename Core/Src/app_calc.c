@@ -453,6 +453,7 @@ void AppCalc_Compute1s(const app_calc_ctx_t *ctx, result_1s_t *out)
   out->thrust = thrust_kn_calc;
   out->rpm = avg_rpm;
   out->power = power_kw_calc;
+  /* This bit-packed value is written directly as the SD CSV "status" column. */
   out->status_flags = (((uint32_t)values_snap.flag_avg_power & 0x1U) << 16) |
                       (((uint32_t)values_snap.flag_axis_param & 0x1U) << 17) |
                       (((uint32_t)values_snap.flag_meas_param & 0x1U) << 18) |

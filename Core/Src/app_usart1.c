@@ -8,6 +8,8 @@
 #define USART1_TIMEOUT_RETRY_MAX   3U
 #define USART1_RECOVERY_CMD_GAP_MS 100U
 #define USART1_FREQ_BASE           19200U
+#define USART1_BOOT_RF_ADD_ENABLE  0U
+#define USART1_BOOT_RF_ADD_CMD     "<ST_RF_ADD=1>"
 #define USART1_LOG_SAMPLE_EVERY    0U
 #define USART1_LOG_INFO            0U
 #define USART1_LOG_VERBOSE_FRAME   0U
@@ -312,7 +314,13 @@ static void AppUsart1_ParseSampleFrame(const app_usart1_ctx_t *ctx, const uint8_
   if (ctx->diag != NULL) { ctx->diag->uart1_sample_ok++; }
 
   s_sample_log_counter++;
+
+#if USART1_LOG_INFO
+#if USART1_LOG_SAMPLE_EVERY > 0U
   if ((s_sample_log_counter <= 5U) || ((s_sample_log_counter % USART1_LOG_SAMPLE_EVERY) == 0U))
+#else
+  if (s_sample_log_counter <= 5U)
+#endif
   {
     U1LOGI("[USART1] sample ok no=%u ch1=%.6f ch2=%.6f vb=%.6f tick=%lu total=%lu\r\n",
          (unsigned int)frame_no,
@@ -322,6 +330,7 @@ static void AppUsart1_ParseSampleFrame(const app_usart1_ctx_t *ctx, const uint8_
          (unsigned long)sample.timestamp_ms,
          (unsigned long)s_sample_log_counter);
   }
+#endif
 }
 
 static void AppUsart1_HandleRxChunk(const app_usart1_ctx_t *ctx, const uint8_t *data, uint16_t len)
@@ -400,6 +409,12 @@ void AppUsart1_Init(const app_usart1_ctx_t *ctx)
   }
   __HAL_DMA_DISABLE_IT(ctx->hdma_rx, DMA_IT_HT);
   U1LOGI("[USART1] rx dma armed\r\n");
+#if USART1_BOOT_RF_ADD_ENABLE
+  (void)AppUsart1_SendFrameDma(ctx,
+                               (const uint8_t *)USART1_BOOT_RF_ADD_CMD,
+                               (uint16_t)(sizeof(USART1_BOOT_RF_ADD_CMD) - 1U),
+                               100U);
+#endif
   s_start_sampling_pending = 1U;
   s_rx_dma_last_pos = 0U;
   U1LOGI("[USART1] start sampling pending\r\n");

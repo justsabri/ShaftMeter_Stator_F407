@@ -61,6 +61,16 @@ typedef struct
   float thrust;
   float rpm;
   float power;
+  /*
+   * SD CSV status field bit layout:
+   * bits 0..7   rpm_count in the 1 s calculation window
+   * bits 8..15  wireless sample_count in the 1 s calculation window
+   * bit 16      flag_avg_power
+   * bit 17      flag_axis_param
+   * bit 18      flag_meas_param
+   * bits 24..27 uart2_req_fail low nibble
+   * bits 28..31 sd_write_fail low nibble
+   */
   uint32_t status_flags;
 } result_1s_t;
 

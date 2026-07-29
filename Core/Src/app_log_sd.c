@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* The CSV "status" column is result_1s_t.status_flags; see Core/Inc/main.h. */
 #define APP_LOG_SD_HEADER "time,torque,thrust,rpm,power,status\r\n"
 #define APP_LOG_SD_RETRY_BASE_MS 30000U
 #define APP_LOG_SD_RETRY_MAX_MS  300000U
@@ -48,6 +49,42 @@ static void AppLogSd_ResetStorageState(app_log_sd_ctx_t *ctx)
   ctx->file_header_written = 0U;
   ctx->current_file_date_valid = 0U;
   ctx->current_file_path[0] = '\0';
+}
+
+static uint8_t AppLogSd_IsCardPresent(void)
+{
+  return (BSP_SD_IsDetected() == SD_PRESENT) ? 1U : 0U;
+}
+
+static void AppLogSd_DeinitStorage(app_log_sd_ctx_t *ctx)
+{
+  extern SD_HandleTypeDef hsd;
+
+  if (ctx == NULL)
+  {
+    return;
+  }
+
+  AppLogSd_ResetStorageState(ctx);
+  if (ctx->sd_path != NULL)
+  {
+    (void)f_mount(NULL, (TCHAR const *)ctx->sd_path, 0);
+  }
+  (void)HAL_SD_DeInit(&hsd);
+}
+
+static void AppLogSd_DropPendingBuffers(app_log_sd_ctx_t *ctx)
+{
+  if (ctx == NULL)
+  {
+    return;
+  }
+
+  ctx->buffers[0].count = 0U;
+  ctx->buffers[1].count = 0U;
+  ctx->flush_buffer_ready = 0U;
+  ctx->flush_buffer_index = 0U;
+  ctx->active_buffer_index = 0U;
 }
 
 static uint8_t AppLogSd_IsRemovalLikeError(FRESULT fr, uint32_t hal_err)
@@ -101,7 +138,12 @@ static uint8_t AppLogSd_ProbeCard(app_log_sd_ctx_t *ctx)
     return 0U;
   }
 
-  AppLogSd_ResetStorageState(ctx);
+  if (AppLogSd_IsCardPresent() == 0U)
+  {
+    return 0U;
+  }
+
+  AppLogSd_DeinitStorage(ctx);
   (void)HAL_SD_GetError(&hsd);
 
   if (BSP_SD_Init() != MSD_OK)
@@ -213,13 +255,11 @@ static FRESULT AppLogSd_OpenDailyFile(app_log_sd_ctx_t *ctx, const app_log_sd_en
 
   (void)snprintf(ctx->current_file_path,
                  sizeof(ctx->current_file_path),
-                 "0:/20%02u-%02u-%02u_%02u-%02u-%02u.csv",
+                 "0:/%02u%02u%02u%02u.CSV",
                  first_entry->date.Year,
                  first_entry->date.Month,
                  first_entry->date.Date,
-                 first_entry->time.Hours,
-                 first_entry->time.Minutes,
-                 first_entry->time.Seconds);
+                 first_entry->time.Hours);
 
   fr = f_open(&ctx->file, ctx->current_file_path, FA_OPEN_ALWAYS | FA_WRITE);
   if (fr != FR_OK)
@@ -442,6 +482,17 @@ void AppLogSd_Process(app_log_sd_ctx_t *ctx)
   }
 
   now_tick = HAL_GetTick();
+  if (AppLogSd_IsCardPresent() == 0U)
+  {
+    AppLogSd_DeinitStorage(ctx);
+    AppLogSd_DropPendingBuffers(ctx);
+    ctx->card_offline = 1U;
+    ctx->probe_ready = 0U;
+    ctx->next_retry_tick_ms = now_tick + APP_LOG_SD_RETRY_BASE_MS;
+    if (ctx->diag != NULL) { ctx->diag->sd_write_fail++; }
+    return;
+  }
+
   if ((ctx->next_retry_tick_ms != 0U) && ((int32_t)(now_tick - ctx->next_retry_tick_ms) < 0))
   {
     return;
@@ -451,6 +502,7 @@ void AppLogSd_Process(app_log_sd_ctx_t *ctx)
   {
     if (AppLogSd_ProbeCard(ctx) == 0U)
     {
+      AppLogSd_DropPendingBuffers(ctx);
       if (ctx->retry_backoff_level < 4U)
       {
         ctx->retry_backoff_level++;
@@ -475,10 +527,11 @@ void AppLogSd_Process(app_log_sd_ctx_t *ctx)
   {
     hal_err = (uint32_t)HAL_SD_GetError(&hsd);
     AppLogSd_LogFailure(ctx, fail_stage, fr, fail_line_index);
-    AppLogSd_ResetStorageState(ctx);
+    AppLogSd_DeinitStorage(ctx);
 
     if (AppLogSd_IsRemovalLikeError(fr, hal_err) != 0U)
     {
+      AppLogSd_DropPendingBuffers(ctx);
       ctx->card_offline = 1U;
       ctx->probe_ready = 0U;
       ctx->next_retry_tick_ms = now_tick + AppLogSd_GetBackoffMs(ctx);

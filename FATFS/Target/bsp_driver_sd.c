@@ -323,10 +323,10 @@ __weak void BSP_SD_ReadCpltCallback(void)
  */
 __weak uint8_t BSP_SD_IsDetected(void)
 {
-  __IO uint8_t status = SD_PRESENT;
+  __IO uint8_t status;
 
   /* USER CODE BEGIN 1 */
-  /* user code can be inserted here */
+  status = (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) ? SD_PRESENT : SD_NOT_PRESENT;
   /* USER CODE END 1 */
 
   return status;

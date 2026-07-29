@@ -1,0 +1,1328 @@
+diff --git a/Core/Inc/main.h b/Core/Inc/main.h
+index 37b1fca..fa546a4 100644
+--- a/Core/Inc/main.h
++++ b/Core/Inc/main.h
+@@ -104,8 +104,9 @@ typedef struct
+ #define EVT_HEALTH_WATCHDOG   (1UL << 12)
+ 
+ #if DEBUG_UART_ENABLE
+-#define LOGI(...) printf(__VA_ARGS__)
+-#define LOGE(...) printf(__VA_ARGS__)
++#define LOGI(...) AppDebug_Log(__VA_ARGS__)
++#define LOGE(...) AppDebug_Log(__VA_ARGS__)
++void AppDebug_Log(const char *fmt, ...);
+ void AppDebug_PrintResetCause(void);
+ #else
+ #define LOGI(...) ((void)0)
+diff --git a/Core/Src/app_avg_power_cache.c b/Core/Src/app_avg_power_cache.c
+index 39223c6..ae8d883 100644
+--- a/Core/Src/app_avg_power_cache.c
++++ b/Core/Src/app_avg_power_cache.c
+@@ -24,6 +24,7 @@ static uint32_t s_last_mono_sec = 0U;
+ 
+ static avg_bucket_t s_bucket_ring[BUCKET_COUNT];
+ 
++/* 将查询小时数四舍五入到十分位。 */
+ static uint32_t AppAvgPowerCache_RoundToTenths(float hours)
+ {
+   float scaled = hours * 10.0f;
+@@ -34,6 +35,7 @@ static uint32_t AppAvgPowerCache_RoundToTenths(float hours)
+   return (uint32_t)(scaled + 0.5f);
+ }
+ 
++/* 初始化平均功率缓存。 */
+ void AppAvgPowerCache_Init(void)
+ {
+   taskENTER_CRITICAL();
+@@ -46,6 +48,7 @@ void AppAvgPowerCache_Init(void)
+   taskEXIT_CRITICAL();
+ }
+ 
++/* 向缓存加入一秒功率数据。 */
+ void AppAvgPowerCache_Push1s(float power_kw, uint32_t mono_sec)
+ {
+   uint32_t bucket_id;
+@@ -85,6 +88,7 @@ void AppAvgPowerCache_Push1s(float power_kw, uint32_t mono_sec)
+   taskEXIT_CRITICAL();
+ }
+ 
++/* 查询指定小时范围内的平均功率。 */
+ float AppAvgPowerCache_QueryHours(float hours, uint8_t *ok)
+ {
+   uint32_t n_tenths;
+diff --git a/Core/Src/app_calc.c b/Core/Src/app_calc.c
+index 3fd3edc..06f5a73 100644
+--- a/Core/Src/app_calc.c
++++ b/Core/Src/app_calc.c
+@@ -49,6 +49,7 @@ static uint16_t s_last_modulus_select = 0xFFFFU;
+ static float s_modulus_g_gpa = 0.0f;
+ static float s_modulus_e_gpa = 0.0f;
+ 
++/* 将原始采样位转换为电压。 */
+ static float AppCalc_RawToVoltage(uint32_t raw)
+ {
+   float v;
+@@ -60,6 +61,7 @@ static float AppCalc_RawToVoltage(uint32_t raw)
+   return (float)raw * 0.000001f;
+ }
+ 
++/* 计算轴截面极惯性矩。 */
+ static float AppCalc_PolarInertiaM4(float outer_mm, float inner_mm)
+ {
+   const float pi_over_32 = 0.0981747704f;
+@@ -88,6 +90,7 @@ static float AppCalc_PolarInertiaM4(float outer_mm, float inner_mm)
+   return j;
+ }
+ 
++/* 记录当前计算系数。 */
+ static void AppCalc_LogCoeffSnapshot(const protocol_values_t *v)
+ {
+ #if APP_CALC_LOG_COEFF_SNAPSHOT
+@@ -119,6 +122,7 @@ static void AppCalc_LogCoeffSnapshot(const protocol_values_t *v)
+ #endif
+ }
+ 
++/* 根据参数刷新计算系数。 */
+ static void AppCalc_UpdateCoeffs(const protocol_values_t *v)
+ {
+   float do_m;
+@@ -233,11 +237,13 @@ static void AppCalc_UpdateCoeffs(const protocol_values_t *v)
+   AppCalc_LogCoeffSnapshot(v);
+ }
+ 
++/* 根据当前值重新计算系数。 */
+ void AppCalc_RecomputeCoeffs(const protocol_values_t *values)
+ {
+   AppCalc_UpdateCoeffs(values);
+ }
+ 
++/* 初始化计算状态。 */
+ void AppCalc_Init(const app_calc_ctx_t *ctx)
+ {
+   (void)ctx;
+@@ -268,6 +274,7 @@ void AppCalc_Init(const app_calc_ctx_t *ctx)
+   s_modulus_e_gpa = 0.0f;
+ }
+ 
++/* 累加一次无线电压采样。 */
+ void AppCalc_FeedSample(float ch1, float ch2)
+ {
+   taskENTER_CRITICAL();
+@@ -288,17 +295,20 @@ void AppCalc_FeedSample(float ch1, float ch2)
+   taskEXIT_CRITICAL();
+ }
+ 
++/* 使能时强制计算输入为零点电压。 */
+ void AppCalc_SetForceZeroInput(uint8_t enable)
+ {
+   s_force_zero_input = (enable != 0U) ? 1U : 0U;
+ }
+ 
++/* 累加一次转速采样。 */
+ void AppCalc_FeedRpm(float rpm)
+ {
+   s_calc_accum.rpm_sum += rpm;
+   s_calc_accum.rpm_count++;
+ }
+ 
++/* 开始采集零点校准样本。 */
+ void AppCalc_ZeroCaptureStart(uint16_t avg_mode)
+ {
+   taskENTER_CRITICAL();
+@@ -312,6 +322,7 @@ void AppCalc_ZeroCaptureStart(uint16_t avg_mode)
+   taskEXIT_CRITICAL();
+ }
+ 
++/* 停止零点采集并返回测得零点。 */
+ uint8_t AppCalc_ZeroCaptureStop(float *zero_ch1, float *zero_ch2)
+ {
+   double sum1;
+@@ -354,6 +365,7 @@ uint8_t AppCalc_ZeroCaptureStop(float *zero_ch1, float *zero_ch2)
+   return 1U;
+ }
+ 
++/* 读取当前零点采集状态。 */
+ void AppCalc_ZeroCaptureGetState(uint8_t *collecting, uint32_t *sample_count)
+ {
+   taskENTER_CRITICAL();
+@@ -368,6 +380,7 @@ void AppCalc_ZeroCaptureGetState(uint8_t *collecting, uint32_t *sample_count)
+   taskEXIT_CRITICAL();
+ }
+ 
++/* 计算一秒周期的扭矩、推力、转速和功率。 */
+ void AppCalc_Compute1s(const app_calc_ctx_t *ctx, result_1s_t *out)
+ {
+   calc_accum_t snap;
+diff --git a/Core/Src/app_log_sd.c b/Core/Src/app_log_sd.c
+index 556b326..26fe9c1 100644
+--- a/Core/Src/app_log_sd.c
++++ b/Core/Src/app_log_sd.c
+@@ -19,6 +19,7 @@ typedef enum
+   APP_LOG_SD_STAGE_SYNC
+ } app_log_sd_stage_t;
+ 
++/* 比较两个 RTC 日期。 */
+ static uint8_t AppLogSd_SameDate(const RTC_DateTypeDef *a, const RTC_DateTypeDef *b)
+ {
+   if ((a == NULL) || (b == NULL))
+@@ -31,6 +32,7 @@ static uint8_t AppLogSd_SameDate(const RTC_DateTypeDef *a, const RTC_DateTypeDef
+                    (a->Date == b->Date));
+ }
+ 
++/* 重置 SD 挂载和文件状态。 */
+ static void AppLogSd_ResetStorageState(app_log_sd_ctx_t *ctx)
+ {
+   if (ctx == NULL)
+@@ -50,6 +52,7 @@ static void AppLogSd_ResetStorageState(app_log_sd_ctx_t *ctx)
+   ctx->current_file_path[0] = '\0';
+ }
+ 
++/* 判断是否为类似 SD 卡移除的错误。 */
+ static uint8_t AppLogSd_IsRemovalLikeError(FRESULT fr, uint32_t hal_err)
+ {
+   if ((fr == FR_NOT_READY) || (fr == FR_INVALID_OBJECT) || (fr == FR_DISK_ERR))
+@@ -65,6 +68,7 @@ static uint8_t AppLogSd_IsRemovalLikeError(FRESULT fr, uint32_t hal_err)
+   return 0U;
+ }
+ 
++/* 计算 SD 重试退避时间。 */
+ static uint32_t AppLogSd_GetBackoffMs(app_log_sd_ctx_t *ctx)
+ {
+   uint32_t delay_ms = APP_LOG_SD_RETRY_BASE_MS;
+@@ -92,6 +96,7 @@ static uint32_t AppLogSd_GetBackoffMs(app_log_sd_ctx_t *ctx)
+   return delay_ms;
+ }
+ 
++/* 探测并重新初始化 SD 卡。 */
+ static uint8_t AppLogSd_ProbeCard(app_log_sd_ctx_t *ctx)
+ {
+   extern SD_HandleTypeDef hsd;
+@@ -118,6 +123,7 @@ static uint8_t AppLogSd_ProbeCard(app_log_sd_ctx_t *ctx)
+   return 1U;
+ }
+ 
++/* 记录 SD 写入失败诊断信息。 */
+ static void AppLogSd_LogFailure(app_log_sd_ctx_t *ctx,
+                                 app_log_sd_stage_t stage,
+                                 FRESULT fr,
+@@ -165,6 +171,7 @@ static void AppLogSd_LogFailure(app_log_sd_ctx_t *ctx,
+        (ctx->current_file_path[0] != '\0') ? ctx->current_file_path : "(none)");
+ }
+ 
++/* 按需挂载 SD 文件系统。 */
+ static FRESULT AppLogSd_EnsureMounted(app_log_sd_ctx_t *ctx)
+ {
+   FRESULT fr;
+@@ -187,6 +194,7 @@ static FRESULT AppLogSd_EnsureMounted(app_log_sd_ctx_t *ctx)
+   return fr;
+ }
+ 
++/* 打开当天 CSV 文件。 */
+ static FRESULT AppLogSd_OpenDailyFile(app_log_sd_ctx_t *ctx, const app_log_sd_entry_t *first_entry)
+ {
+   FRESULT fr;
+@@ -242,6 +250,7 @@ static FRESULT AppLogSd_OpenDailyFile(app_log_sd_ctx_t *ctx, const app_log_sd_en
+   return FR_OK;
+ }
+ 
++/* 为每个文件写入一次 CSV 表头。 */
+ static FRESULT AppLogSd_WriteHeaderIfNeeded(app_log_sd_ctx_t *ctx)
+ {
+   FRESULT fr;
+@@ -268,6 +277,7 @@ static FRESULT AppLogSd_WriteHeaderIfNeeded(app_log_sd_ctx_t *ctx)
+   return (fr == FR_OK) ? FR_DISK_ERR : fr;
+ }
+ 
++/* 将缓存日志写入 SD 卡。 */
+ static FRESULT AppLogSd_WriteBuffer(app_log_sd_ctx_t *ctx, app_log_sd_buffer_t *buffer,
+                                     app_log_sd_stage_t *fail_stage,
+                                     uint32_t *fail_line_index)
+@@ -357,6 +367,7 @@ static FRESULT AppLogSd_WriteBuffer(app_log_sd_ctx_t *ctx, app_log_sd_buffer_t *
+   return FR_OK;
+ }
+ 
++/* 初始化 SD 日志上下文。 */
+ void AppLogSd_Init(app_log_sd_ctx_t *ctx,
+                    RTC_HandleTypeDef *hrtc,
+                    FATFS *fatfs,
+@@ -375,6 +386,7 @@ void AppLogSd_Init(app_log_sd_ctx_t *ctx,
+   ctx->diag = diag;
+ }
+ 
++/* 将一秒结果加入 SD 日志队列。 */
+ void AppLogSd_Push1s(app_log_sd_ctx_t *ctx, const result_1s_t *result)
+ {
+   app_log_sd_buffer_t *active;
+@@ -426,6 +438,7 @@ void AppLogSd_Push1s(app_log_sd_ctx_t *ctx, const result_1s_t *result)
+   }
+ }
+ 
++/* 处理待写入 SD 日志和重试状态。 */
+ void AppLogSd_Process(app_log_sd_ctx_t *ctx)
+ {
+   app_log_sd_buffer_t *flush_buffer;
+diff --git a/Core/Src/app_modbus_u2.c b/Core/Src/app_modbus_u2.c
+index 1ff85b0..3004c25 100644
+--- a/Core/Src/app_modbus_u2.c
++++ b/Core/Src/app_modbus_u2.c
+@@ -59,6 +59,7 @@ static void AppModbusU2_LogTimeoutDiag(const app_modbus_u2_ctx_t *ctx,
+                                        uint16_t quantity,
+                                        uint16_t rx_stream_len);
+ 
++/* 在 RTOS 或 HAL 裸环境下延时一毫秒。 */
+ static void AppModbusU2_Delay1ms(void)
+ {
+   if (osKernelGetState() == osKernelRunning)
+@@ -119,6 +120,7 @@ static const modbus_write_item_t s_write_07xx_list[] = {
+ };
+ #undef OFF_PROTO
+ 
++/* 将浮点数打包为两个 Modbus 寄存器。 */
+ static void AppModbusU2_WriteFloatToRegs(float value, uint16_t *out_regs)
+ {
+   uint32_t raw;
+@@ -133,6 +135,7 @@ static void AppModbusU2_WriteFloatToRegs(float value, uint16_t *out_regs)
+   out_regs[1] = (uint16_t)(raw >> 16);
+ }
+ 
++/* 详细日志使能时记录 Modbus 字节缓冲。 */
+ static void AppModbusU2_LogBytes(const char *tag, const uint8_t *buf, uint16_t len)
+ {
+   uint16_t i;
+@@ -154,6 +157,7 @@ static void AppModbusU2_LogBytes(const char *tag, const uint8_t *buf, uint16_t l
+   U2LOGI("\r\n");
+ }
+ 
++/* 按错误日志记录 Modbus 字节缓冲。 */
+ static void AppModbusU2_LogBytesError(const char *tag, const uint8_t *buf, uint16_t len)
+ {
+   uint16_t i;
+@@ -175,6 +179,7 @@ static void AppModbusU2_LogBytesError(const char *tag, const uint8_t *buf, uint1
+   U2LOGE("\r\n");
+ }
+ 
++/* 记录 Modbus 超时诊断信息。 */
+ static void AppModbusU2_LogTimeoutDiag(const app_modbus_u2_ctx_t *ctx,
+                                        uint32_t req_id,
+                                        const char *phase,
+@@ -215,6 +220,7 @@ static void AppModbusU2_LogTimeoutDiag(const app_modbus_u2_ctx_t *ctx,
+          (unsigned long)s_modbus_rx_queue_put_fail_count);
+ }
+ 
++/* 记录解码后的寄存器值用于调试。 */
+ static void AppModbusU2_LogDecodedValues(const char *tag, uint16_t start_addr, const uint16_t *regs, uint16_t qty)
+ {
+   uint16_t i;
+@@ -278,6 +284,7 @@ static void AppModbusU2_LogDecodedValues(const char *tag, uint16_t start_addr, c
+   }
+ }
+ 
++/* 构建 Modbus 写多个寄存器请求。 */
+ static uint16_t AppModbusU2_BuildWriteMultiple(const app_modbus_u2_ctx_t *ctx,
+                                                uint16_t start_addr,
+                                                uint16_t quantity,
+@@ -323,6 +330,7 @@ static uint16_t AppModbusU2_BuildWriteMultiple(const app_modbus_u2_ctx_t *ctx,
+   return (uint16_t)(9U + data_bytes);
+ }
+ 
++/* 在接收流中查找并校验写应答。 */
+ static uint8_t AppModbusU2_ParseWriteAckFromStream(const uint8_t *buf,
+                                                    uint16_t len,
+                                                    uint8_t slave_id,
+@@ -361,6 +369,7 @@ static uint8_t AppModbusU2_ParseWriteAckFromStream(const uint8_t *buf,
+   return 0U;
+ }
+ 
++/* 在接收流中查找并解析期望读响应。 */
+ static uint8_t AppModbusU2_ParseExpectedFromStream(const uint8_t *buf,
+                                                    uint16_t len,
+                                                    uint8_t slave_id,
+@@ -413,6 +422,7 @@ static uint8_t AppModbusU2_ParseExpectedFromStream(const uint8_t *buf,
+   return 0U;
+ }
+ 
++/* 发送 Modbus 读请求并等待响应。 */
+ static HAL_StatusTypeDef AppModbusU2_SendAndWaitRead(const app_modbus_u2_ctx_t *ctx, uint16_t start_addr, uint16_t quantity, modbus_read_resp_t *resp)
+ {
+   modbus_read_req_t req;
+@@ -633,6 +643,7 @@ static HAL_StatusTypeDef AppModbusU2_SendAndWaitRead(const app_modbus_u2_ctx_t *
+   return HAL_OK;
+ }
+ 
++/* 发送 Modbus 写请求并等待应答。 */
+ static HAL_StatusTypeDef AppModbusU2_SendAndWaitWrite(const app_modbus_u2_ctx_t *ctx,
+                                                       uint16_t start_addr,
+                                                       uint16_t quantity,
+@@ -818,6 +829,7 @@ static HAL_StatusTypeDef AppModbusU2_SendAndWaitWrite(const app_modbus_u2_ctx_t
+   }
+ }
+ 
++/* 将映射的浮点值转换为 Modbus 寄存器。 */
+ static uint16_t AppModbusU2_FloatToRegs(const app_modbus_u2_ctx_t *ctx,
+                                         uint16_t value_offset,
+                                         uint16_t *out_regs,
+@@ -848,6 +860,7 @@ static uint16_t AppModbusU2_FloatToRegs(const app_modbus_u2_ctx_t *ctx,
+   return 2U;
+ }
+ 
++/* 将映射的 16 位值转换为 Modbus 寄存器。 */
+ static uint16_t AppModbusU2_U16ToRegs(const app_modbus_u2_ctx_t *ctx,
+                                       uint16_t value_offset,
+                                       uint16_t *out_regs,
+@@ -875,6 +888,7 @@ static uint16_t AppModbusU2_U16ToRegs(const app_modbus_u2_ctx_t *ctx,
+   return 1U;
+ }
+ 
++/* 低压标志发送成功后清除对应状态。 */
+ static void AppModbusU2_ClearSentLowVoltageStates(const app_modbus_u2_ctx_t *ctx,
+                                                   uint16_t start_addr,
+                                                   uint16_t quantity)
+@@ -904,6 +918,7 @@ static void AppModbusU2_ClearSentLowVoltageStates(const app_modbus_u2_ctx_t *ctx
+   }
+ }
+ 
++/* 每秒写入一次 0x07xx 结果寄存器组。 */
+ static uint8_t AppModbusU2_Write07xx1Hz(const app_modbus_u2_ctx_t *ctx)
+ {
+   uint16_t regs[32];
+@@ -999,6 +1014,7 @@ static uint8_t AppModbusU2_Write07xx1Hz(const app_modbus_u2_ctx_t *ctx)
+   return all_ok;
+ }
+ 
++/* 根据 Modbus 读响应更新共享协议值。 */
+ static void AppModbusU2_UpdateCache(const app_modbus_u2_ctx_t *ctx, uint16_t start_addr, const modbus_read_resp_t *resp)
+ {
+   uint16_t i;
+@@ -1058,6 +1074,7 @@ static void AppModbusU2_UpdateCache(const app_modbus_u2_ctx_t *ctx, uint16_t sta
+   }
+ }
+ 
++/* 处理 Modbus 参数变化上升沿标志。 */
+ static void AppModbusU2_ProcessChangeFlags(const app_modbus_u2_ctx_t *ctx, uint16_t flags)
+ {
+   modbus_read_resp_t resp;
+@@ -1250,6 +1267,7 @@ static void AppModbusU2_ProcessChangeFlags(const app_modbus_u2_ctx_t *ctx, uint1
+   }
+ }
+ 
++/* 清除对端已处理的触发标志。 */
+ static void AppModbusU2_ClearTriggerFlags(const app_modbus_u2_ctx_t *ctx)
+ {
+   uint16_t regs[3] = {0U, 0U, 0U};
+@@ -1277,6 +1295,7 @@ static void AppModbusU2_ClearTriggerFlags(const app_modbus_u2_ctx_t *ctx)
+   }
+ }
+ 
++/* 初始化 USART2 Modbus 轮询状态。 */
+ void AppModbusU2_Init(const app_modbus_u2_ctx_t *ctx)
+ {
+   if ((ctx == NULL) || (ctx->huart2 == NULL) || (ctx->hdma_usart2_rx == NULL) || (ctx->rx_dma_buf == NULL))
+@@ -1301,6 +1320,7 @@ void AppModbusU2_Init(const app_modbus_u2_ctx_t *ctx)
+   U2LOGI("[MODBUS-U2] rx dma armed\r\n");
+ }
+ 
++/* 停止 USART2 接收 DMA 并复位位置。 */
+ static void AppModbusU2_StopRxDma(const app_modbus_u2_ctx_t *ctx)
+ {
+   if ((ctx == NULL) || (ctx->huart2 == NULL))
+@@ -1312,6 +1332,7 @@ static void AppModbusU2_StopRxDma(const app_modbus_u2_ctx_t *ctx)
+   s_modbus_rx_dma_last_pos = 0U;
+ }
+ 
++/* 启动 USART2 空闲中断接收 DMA。 */
+ static HAL_StatusTypeDef AppModbusU2_StartRxDma(const app_modbus_u2_ctx_t *ctx)
+ {
+   HAL_StatusTypeDef ret;
+@@ -1330,6 +1351,7 @@ static HAL_StatusTypeDef AppModbusU2_StartRxDma(const app_modbus_u2_ctx_t *ctx)
+   return ret;
+ }
+ 
++/* 为下一次 Modbus 响应准备接收状态。 */
+ static HAL_StatusTypeDef AppModbusU2_StartResponseWindow(const app_modbus_u2_ctx_t *ctx)
+ {
+   modbus_event_msg_t rx_msg;
+@@ -1351,6 +1373,7 @@ static HAL_StatusTypeDef AppModbusU2_StartResponseWindow(const app_modbus_u2_ctx
+   return AppModbusU2_StartRxDma(ctx);
+ }
+ 
++/* 处理 USART2 空闲中断接收 DMA 事件。 */
+ void AppModbusU2_OnRxEvent(const app_modbus_u2_ctx_t *ctx, uint16_t size)
+ {
+   modbus_event_msg_t mb_msg;
+@@ -1462,6 +1485,7 @@ rearm_dma:
+   __HAL_DMA_DISABLE_IT(ctx->hdma_usart2_rx, DMA_IT_HT);
+ }
+ 
++/* UART 错误后恢复 USART2 接收 DMA。 */
+ void AppModbusU2_OnError(const app_modbus_u2_ctx_t *ctx)
+ {
+   HAL_StatusTypeDef rearm_ret;
+@@ -1485,6 +1509,7 @@ void AppModbusU2_OnError(const app_modbus_u2_ctx_t *ctx)
+   __HAL_DMA_DISABLE_IT(ctx->hdma_usart2_rx, DMA_IT_HT);
+ }
+ 
++/* 超时后中止并重启 USART2 接收 DMA。 */
+ static void AppModbusU2_RecoverRxDma(const app_modbus_u2_ctx_t *ctx)
+ {
+   HAL_StatusTypeDef rearm_ret;
+@@ -1519,6 +1544,7 @@ static void AppModbusU2_RecoverRxDma(const app_modbus_u2_ctx_t *ctx)
+   __HAL_DMA_DISABLE_IT(ctx->hdma_usart2_rx, DMA_IT_HT);
+ }
+ 
++/* 标记 USART2 DMA 发送完成。 */
+ void AppModbusU2_OnTxCplt(const app_modbus_u2_ctx_t *ctx)
+ {
+   (void)ctx;
+@@ -1528,6 +1554,7 @@ void AppModbusU2_OnTxCplt(const app_modbus_u2_ctx_t *ctx)
+ #endif
+ }
+ 
++/* 执行 1Hz Modbus 轮询和写入周期。 */
+ void AppModbusU2_Process1Hz(const app_modbus_u2_ctx_t *ctx)
+ {
+   modbus_read_resp_t resp;
+@@ -1597,6 +1624,7 @@ void AppModbusU2_Process1Hz(const app_modbus_u2_ctx_t *ctx)
+        (unsigned long)s_modbus_write_ok_count,
+        (unsigned long)s_modbus_write_timeout_count);
+ }
++/* 将解码寄存器数据写入协议值。 */
+ static void AppModbusU2_WriteMappedValue(protocol_values_t *values,
+                                          const reg_meta_t *meta,
+                                          const uint16_t *regs)
+diff --git a/Core/Src/app_param_store.c b/Core/Src/app_param_store.c
+index 8426daa..4aefab4 100644
+--- a/Core/Src/app_param_store.c
++++ b/Core/Src/app_param_store.c
+@@ -37,6 +37,7 @@ typedef struct
+ static param_store_payload_t s_last_payload;
+ static uint8_t s_last_payload_valid = 0U;
+ 
++/* 计算存储参数数据的 CRC32。 */
+ static uint32_t AppParamStore_Crc32(const uint8_t *data, uint32_t len)
+ {
+   uint32_t crc = 0xFFFFFFFFUL;
+@@ -66,6 +67,7 @@ static uint32_t AppParamStore_Crc32(const uint8_t *data, uint32_t len)
+   return ~crc;
+ }
+ 
++/* 将协议值复制为 Flash 载荷格式。 */
+ static void AppParamStore_PayloadFromValues(const protocol_values_t *values, param_store_payload_t *payload)
+ {
+   if ((values == NULL) || (payload == NULL))
+@@ -92,6 +94,7 @@ static void AppParamStore_PayloadFromValues(const protocol_values_t *values, par
+   payload->zero_voltage[1] = values->zero_voltage[1];
+ }
+ 
++/* 将 Flash 载荷值应用到协议状态。 */
+ static void AppParamStore_ApplyPayload(protocol_values_t *values, const param_store_payload_t *payload)
+ {
+   if ((values == NULL) || (payload == NULL))
+@@ -118,6 +121,7 @@ static void AppParamStore_ApplyPayload(protocol_values_t *values, const param_st
+   values->zero_voltage[1] = payload->zero_voltage[1];
+ }
+ 
++/* 从 Flash 加载有效保存参数。 */
+ uint8_t AppParamStore_Load(protocol_values_t *values)
+ {
+   const param_store_record_t *record = (const param_store_record_t *)PARAM_STORE_FLASH_ADDR;
+@@ -150,6 +154,7 @@ uint8_t AppParamStore_Load(protocol_values_t *values)
+   return 1U;
+ }
+ 
++/* 参数变化时保存到 Flash。 */
+ uint8_t AppParamStore_SaveIfChanged(const protocol_values_t *values)
+ {
+   param_store_record_t record;
+diff --git a/Core/Src/app_tx_result.c b/Core/Src/app_tx_result.c
+index 2f4a3bb..862327c 100644
+--- a/Core/Src/app_tx_result.c
++++ b/Core/Src/app_tx_result.c
+@@ -4,6 +4,7 @@
+ 
+ #define TX_RESULT_REG_COUNT 8U
+ 
++/* 将结果浮点数打包为输出寄存器字节。 */
+ static void AppTxResult_FloatToRegs(float value, uint8_t *out_hi, uint8_t *out_lo)
+ {
+   uint32_t raw;
+@@ -14,21 +15,25 @@ static void AppTxResult_FloatToRegs(float value, uint8_t *out_hi, uint8_t *out_l
+   out_lo[1] = (uint8_t)raw;
+ }
+ 
++/* 设置 USART2 RS485 发送方向。 */
+ void AppTxResult_SetRs485Usart2(uint8_t enable)
+ {
+   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+ }
+ 
++/* 设置 USART3 RS485 发送方向。 */
+ void AppTxResult_SetRs485Usart3(uint8_t enable)
+ {
+   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+ }
+ 
++/* 设置 USART6 RS485 发送方向。 */
+ void AppTxResult_SetRs485Usart6(uint8_t enable)
+ {
+   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+ }
+ 
++/* 根据配置更新结果输出使能。 */
+ void AppTxResult_UpdateEnableFromConfig(const protocol_values_t *values,
+                                         volatile uint8_t *en_usart3,
+                                         volatile uint8_t *en_uart6)
+@@ -41,6 +46,7 @@ void AppTxResult_UpdateEnableFromConfig(const protocol_values_t *values,
+   *en_uart6 = ((values->flag_uart_enable == 2U) || (values->flag_uart_enable == 3U)) ? 1U : 0U;
+ }
+ 
++/* 构建结果写入帧。 */
+ uint16_t AppTxResult_BuildWriteFrame(uint8_t slave_id, uint16_t start_addr, const result_1s_t *result, uint8_t *out, uint16_t out_size)
+ {
+   uint16_t crc;
+@@ -70,6 +76,7 @@ uint16_t AppTxResult_BuildWriteFrame(uint8_t slave_id, uint16_t start_addr, cons
+   return 25U;
+ }
+ 
++/* 通过 USART3 DMA 发送结果帧。 */
+ HAL_StatusTypeDef AppTxResult_SendUsart3(const app_tx_result_ctx_t *ctx, const uint8_t *frame, uint16_t len, uint32_t timeout_ms)
+ {
+   uint32_t start_tick;
+@@ -113,6 +120,7 @@ HAL_StatusTypeDef AppTxResult_SendUsart3(const app_tx_result_ctx_t *ctx, const u
+   return HAL_OK;
+ }
+ 
++/* 通过 USART6 阻塞串口发送结果帧。 */
+ HAL_StatusTypeDef AppTxResult_SendUsart6(const app_tx_result_ctx_t *ctx, const uint8_t *frame, uint16_t len, uint32_t timeout_ms)
+ {
+   HAL_StatusTypeDef ret;
+diff --git a/Core/Src/app_usart1.c b/Core/Src/app_usart1.c
+index a497c6a..1145204 100644
+--- a/Core/Src/app_usart1.c
++++ b/Core/Src/app_usart1.c
+@@ -31,6 +31,7 @@ static uint16_t s_rx_accum_len = 0U;
+ static uint16_t s_rx_dma_last_pos = 0U;
+ static uint8_t s_timeout_retry_count = 0U;
+ 
++/* 将原始 32 位采样转换为浮点数。 */
+ static float AppUsart1_U32ToFloat(uint32_t raw)
+ {
+   union
+@@ -42,6 +43,7 @@ static float AppUsart1_U32ToFloat(uint32_t raw)
+   return cvt.f;
+ }
+ 
++/* 在 RTOS 或 HAL 裸环境下延时一毫秒。 */
+ static void AppUsart1_Delay1ms(void)
+ {
+   if (osKernelGetState() == osKernelRunning)
+@@ -54,6 +56,7 @@ static void AppUsart1_Delay1ms(void)
+   }
+ }
+ 
++/* 延时指定毫秒数。 */
+ static void AppUsart1_DelayMs(uint32_t delay_ms)
+ {
+   if (osKernelGetState() == osKernelRunning)
+@@ -66,6 +69,7 @@ static void AppUsart1_DelayMs(uint32_t delay_ms)
+   }
+ }
+ 
++/* 将采样频率转换为设备命令值。 */
+ static uint16_t AppUsart1_FrequencyToCmdValue(uint16_t frequency)
+ {
+   uint32_t value;
+@@ -86,6 +90,7 @@ static uint16_t AppUsart1_FrequencyToCmdValue(uint16_t frequency)
+   return (uint16_t)value;
+ }
+ 
++/* 详细日志使能时记录 USART1 帧。 */
+ static void AppUsart1_LogFrame(const char *tag, const uint8_t *frame, uint16_t len)
+ {
+   uint16_t i;
+@@ -114,6 +119,7 @@ static void AppUsart1_LogFrame(const char *tag, const uint8_t *frame, uint16_t l
+ #endif
+ }
+ 
++/* 记录带错误原因的 USART1 帧。 */
+ static void AppUsart1_LogFrameError(const char *tag, const char *reason, const uint8_t *frame, uint16_t len)
+ {
+   uint16_t i;
+@@ -140,6 +146,7 @@ static void AppUsart1_LogFrameError(const char *tag, const char *reason, const u
+   LOGE("\r\n");
+ }
+ 
++/* 上报无线帧号不连续。 */
+ static void AppUsart1_OnFrameNoDiscontinuity(uint16_t prev_no, uint16_t curr_no)
+ {
+   LOGE("[USART1] frame discontinuity prev=%u curr=%u\r\n",
+@@ -147,6 +154,7 @@ static void AppUsart1_OnFrameNoDiscontinuity(uint16_t prev_no, uint16_t curr_no)
+        (unsigned int)curr_no);
+ }
+ 
++/* 处理长时间无线接收中断。 */
+ static void AppUsart1_OnRxInterrupted(const app_usart1_ctx_t *ctx)
+ {
+   if ((ctx != NULL) && (ctx->on_rx_interrupt != NULL))
+@@ -161,6 +169,7 @@ static void AppUsart1_OnRxInterrupted(const app_usart1_ctx_t *ctx)
+   }
+ }
+ 
++/* 读取配置的无线采样频率。 */
+ static uint16_t AppUsart1_GetConfiguredFrequency(const app_usart1_ctx_t *ctx)
+ {
+   uint16_t freq = 200U;
+@@ -176,6 +185,7 @@ static uint16_t AppUsart1_GetConfiguredFrequency(const app_usart1_ctx_t *ctx)
+   return freq;
+ }
+ 
++/* 构建 9 字节无线命令帧。 */
+ static void AppUsart1_BuildFrame(uint8_t cmd1, uint8_t cmd2, uint8_t p1, uint8_t p2, uint8_t *out9)
+ {
+   uint16_t crc;
+@@ -191,6 +201,7 @@ static void AppUsart1_BuildFrame(uint8_t cmd1, uint8_t cmd2, uint8_t p1, uint8_t
+   out9[8] = (uint8_t)(crc >> 8);
+ }
+ 
++/* 通过 USART1 DMA 发送无线帧。 */
+ static HAL_StatusTypeDef AppUsart1_SendFrameDma(const app_usart1_ctx_t *ctx, const uint8_t *frame, uint16_t len, uint32_t timeout_ms)
+ {
+   uint32_t start_tick = HAL_GetTick();
+@@ -225,6 +236,7 @@ static HAL_StatusTypeDef AppUsart1_SendFrameDma(const app_usart1_ctx_t *ctx, con
+   return HAL_OK;
+ }
+ 
++/* 校验并发布一帧无线采样。 */
+ static void AppUsart1_ParseSampleFrame(const app_usart1_ctx_t *ctx, const uint8_t *frame, uint16_t len)
+ {
+   wireless_sample_t sample;
+@@ -324,6 +336,7 @@ static void AppUsart1_ParseSampleFrame(const app_usart1_ctx_t *ctx, const uint8_
+   }
+ }
+ 
++/* 追加并解析接收到的无线字节。 */
+ static void AppUsart1_HandleRxChunk(const app_usart1_ctx_t *ctx, const uint8_t *data, uint16_t len)
+ {
+   uint16_t i = 0U;
+@@ -382,6 +395,7 @@ static void AppUsart1_HandleRxChunk(const app_usart1_ctx_t *ctx, const uint8_t *
+   }
+ }
+ 
++/* 初始化 USART1 无线采样。 */
+ void AppUsart1_Init(const app_usart1_ctx_t *ctx)
+ {
+   if ((ctx == NULL) || (ctx->huart == NULL) || (ctx->hdma_rx == NULL) || (ctx->rx_dma_buf == NULL))
+@@ -405,6 +419,7 @@ void AppUsart1_Init(const app_usart1_ctx_t *ctx)
+   U1LOGI("[USART1] start sampling pending\r\n");
+ }
+ 
++/* 处理 USART1 队列、心跳和超时恢复。 */
+ void AppUsart1_Process(const app_usart1_ctx_t *ctx, uint32_t now_tick_ms)
+ {
+   static uint32_t hb_tick = 0U;
+@@ -481,12 +496,14 @@ void AppUsart1_Process(const app_usart1_ctx_t *ctx, uint32_t now_tick_ms)
+   }
+ }
+ 
++/* 标记 USART1 DMA 发送完成。 */
+ void AppUsart1_OnTxCplt(const app_usart1_ctx_t *ctx)
+ {
+   (void)ctx;
+   s_usart1_tx_done = 1U;
+ }
+ 
++/* 处理 USART1 空闲中断接收 DMA 事件。 */
+ void AppUsart1_OnRxEvent(const app_usart1_ctx_t *ctx, uint16_t size)
+ {
+   usart1_frame_msg_t msg;
+@@ -563,6 +580,7 @@ rearm_dma:
+   __HAL_DMA_DISABLE_IT(ctx->hdma_rx, DMA_IT_HT);
+ }
+ 
++/* UART 错误后恢复 USART1 接收 DMA。 */
+ void AppUsart1_OnError(const app_usart1_ctx_t *ctx)
+ {
+   if ((ctx == NULL) || (ctx->huart == NULL) || (ctx->hdma_rx == NULL) || (ctx->rx_dma_buf == NULL))
+@@ -577,6 +595,7 @@ void AppUsart1_OnError(const app_usart1_ctx_t *ctx)
+   __HAL_DMA_DISABLE_IT(ctx->hdma_rx, DMA_IT_HT);
+ }
+ 
++/* 发送初始无线开始采样命令。 */
+ void AppUsart1_SendStartSampling(const app_usart1_ctx_t *ctx)
+ {
+   uint8_t frame[9];
+@@ -602,6 +621,7 @@ void AppUsart1_SendStartSampling(const app_usart1_ctx_t *ctx)
+   }
+ }
+ 
++/* 发送带日志的无线开始采样命令。 */
+ void AppUsart1_SendStartSamplingWithLog(const app_usart1_ctx_t *ctx, const char *reason)
+ {
+   uint8_t frame[9];
+@@ -627,6 +647,7 @@ void AppUsart1_SendStartSamplingWithLog(const app_usart1_ctx_t *ctx, const char
+   }
+ }
+ 
++/* 发送无线停止采样命令。 */
+ void AppUsart1_SendStopSampling(const app_usart1_ctx_t *ctx)
+ {
+   uint8_t frame[9];
+@@ -637,6 +658,7 @@ void AppUsart1_SendStopSampling(const app_usart1_ctx_t *ctx)
+   U1LOGI("[USART1] sampling stopped\r\n");
+ }
+ 
++/* 发送带日志的无线停止采样命令。 */
+ void AppUsart1_SendStopSamplingWithLog(const app_usart1_ctx_t *ctx, const char *reason)
+ {
+   uint8_t frame[9];
+@@ -646,6 +668,7 @@ void AppUsart1_SendStopSamplingWithLog(const app_usart1_ctx_t *ctx, const char *
+   s_sampling_active = 0U;
+ }
+ 
++/* 发送无线采样频率命令。 */
+ void AppUsart1_SendSetFrequency(const app_usart1_ctx_t *ctx, uint16_t frequency)
+ {
+   uint8_t frame[9];
+@@ -658,6 +681,7 @@ void AppUsart1_SendSetFrequency(const app_usart1_ctx_t *ctx, uint16_t frequency)
+   (void)AppUsart1_SendFrameDma(ctx, frame, sizeof(frame), 100U);
+ }
+ 
++/* 发送带日志的无线频率命令。 */
+ void AppUsart1_SendSetFrequencyWithLog(const app_usart1_ctx_t *ctx, uint16_t frequency, const char *reason)
+ {
+   uint8_t frame[9];
+diff --git a/Core/Src/freertos.c b/Core/Src/freertos.c
+index 0331c54..08bb0e4 100644
+--- a/Core/Src/freertos.c
++++ b/Core/Src/freertos.c
+@@ -56,6 +56,7 @@
+ /* Private application code --------------------------------------------------*/
+ /* USER CODE BEGIN Application */
+ 
++/* 处理 FreeRTOS 内存分配失败。 */
+ void vApplicationMallocFailedHook(void)
+ {
+   __disable_irq();
+@@ -65,6 +66,7 @@ void vApplicationMallocFailedHook(void)
+   }
+ }
+ 
++/* 处理 FreeRTOS 栈溢出。 */
+ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+ {
+   (void)xTask;
+@@ -76,4 +78,3 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+ }
+ 
+ /* USER CODE END Application */
+-
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+index 76cce82..3f2a14e 100644
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -32,6 +32,7 @@
+ #include "app_avg_power_cache.h"
+ #include "app_param_store.h"
+ #include <stdio.h>
++#include <stdarg.h>
+ 
+ /* Private includes ----------------------------------------------------------*/
+ /* USER CODE BEGIN Includes */
+@@ -72,6 +73,8 @@
+ #define RTC_INIT_MARKER_VALUE 0xA5A55A5AU
+ #define TX_ENABLE_USART3_DEFAULT 0U
+ #define TX_ENABLE_UART6_DEFAULT  0U
++#define DEBUG_UART_LOG_BUF_SIZE  256U
++#define DEBUG_UART_TX_TIMEOUT_MS 100U
+ 
+ /* USER CODE END PD */
+ 
+@@ -238,6 +241,56 @@ static void UpdatePc2LowVoltageState(void);
+ 
+ /* Private user code ---------------------------------------------------------*/
+ /* USER CODE BEGIN 0 */
++/* 格式化并通过调试串口整包输出，避免 printf 被优化成 puts 后单步误判。 */
++void AppDebug_Log(const char *fmt, ...)
++{
++#if DEBUG_UART_ENABLE
++  char buf[DEBUG_UART_LOG_BUF_SIZE];
++  va_list args;
++  int len;
++#if DEBUG_UART_USE_RS485_DIR
++  uint32_t start_tick;
++#endif
++
++  if (fmt == NULL)
++  {
++    return;
++  }
++
++  va_start(args, fmt);
++  len = vsnprintf(buf, sizeof(buf), fmt, args);
++  va_end(args);
++
++  if (len <= 0)
++  {
++    return;
++  }
++  if ((uint32_t)len >= sizeof(buf))
++  {
++    len = (int)sizeof(buf) - 1;
++  }
++
++#if DEBUG_UART_USE_RS485_DIR
++  AppTxResult_SetRs485Usart6(1U);
++#endif
++  (void)HAL_UART_Transmit(&huart6, (uint8_t *)buf, (uint16_t)len, DEBUG_UART_TX_TIMEOUT_MS);
++#if DEBUG_UART_USE_RS485_DIR
++  start_tick = HAL_GetTick();
++  while (__HAL_UART_GET_FLAG(&huart6, UART_FLAG_TC) == RESET)
++  {
++    if ((HAL_GetTick() - start_tick) > DEBUG_UART_TX_TIMEOUT_MS)
++    {
++      break;
++    }
++  }
++  AppTxResult_SetRs485Usart6(0U);
++#endif
++#else
++  (void)fmt;
++#endif
++}
++
++/* 打印并清除 MCU 复位原因标志。 */
+ void AppDebug_PrintResetCause(void)
+ {
+   if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST) != RESET)
+@@ -263,6 +316,7 @@ void AppDebug_PrintResetCause(void)
+   __HAL_RCC_CLEAR_RESET_FLAGS();
+ }
+ 
++/* 将 printf 输出路由到调试串口。 */
+ int __io_putchar(int ch)
+ {
+ #if DEBUG_UART_ENABLE
+@@ -326,7 +380,11 @@ int main(void)
+   MX_USART1_UART_Init();
+   MX_USART2_UART_Init();
+   MX_USART3_UART_Init();
++
+   MX_USART6_UART_Init();
++
++   LOGI("\r\n[BOOT] ShaftPower start\r\n");
++
+   MX_ADC1_Init();
+   MX_SDIO_SD_Init();
+ #if WDG_HW_ENABLE
+@@ -897,6 +955,15 @@ static void MX_GPIO_Init(void)
+   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ 
++  /*Configure GPIO pin : PA8 */
++  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
++
++  GPIO_InitStruct.Pin = GPIO_PIN_8;
++  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
++  GPIO_InitStruct.Pull = GPIO_NOPULL;
++  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
++  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
++
+   /* EXTI interrupt init*/
+   HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+@@ -957,12 +1024,14 @@ static void MX_RTC_Init(void)
+   }
+ }
+ 
++/* 将无线应变采样送入计算。 */
+ static void OnWirelessSampleReceived(float ch1, float ch2)
+ {
+   AppCalc_SetForceZeroInput(0U);
+   AppCalc_FeedSample(ch1, ch2);
+ }
+ 
++/* 根据无线采样更新板端低压状态。 */
+ static void OnWirelessBoardSampleReceived(float board)
+ {
+   uint16_t state = 0U;
+@@ -993,6 +1062,7 @@ static void OnWirelessBoardSampleReceived(float board)
+   }
+ }
+ 
++/* 保存最新无线帧号。 */
+ static void OnWirelessFrameNoReceived(uint16_t frame_no)
+ {
+   if ((mtxSharedDataHandle != NULL) && (osMutexAcquire(mtxSharedDataHandle, 5U) == osOK))
+@@ -1002,6 +1072,7 @@ static void OnWirelessFrameNoReceived(uint16_t frame_no)
+   }
+ }
+ 
++/* 重启无线供电并强制零点输入。 */
+ static void OnWirelessRxInterrupted(void)
+ {
+   float zero_ch1 = 0.0f;
+@@ -1028,6 +1099,7 @@ static void OnWirelessRxInterrupted(void)
+   // LOGI("[WIRELESS] ext supply power-cycle complete\r\n");
+ }
+ 
++/* 读取配置的无线采样频率。 */
+ static uint16_t GetWirelessSampleFreqHz(void)
+ {
+   float freq_hz = 200.0f;
+@@ -1051,6 +1123,7 @@ static uint16_t GetWirelessSampleFreqHz(void)
+   return (freq_u16 == 0U) ? 200U : freq_u16;
+ }
+ 
++/* 将 PC2 ADC 采样转换为毫伏。 */
+ static uint16_t ReadPc2AdcVoltageMv(void)
+ {
+   uint32_t raw = g_pc2_adc_raw;
+@@ -1068,6 +1141,7 @@ static uint16_t ReadPc2AdcVoltageMv(void)
+   return (uint16_t)voltage_mv;
+ }
+ 
++/* 根据 ADC 采样更新 PC2 低压状态。 */
+ static void UpdatePc2LowVoltageState(void)
+ {
+   uint16_t voltage_mv = ReadPc2AdcVoltageMv();
+@@ -1099,6 +1173,7 @@ static void UpdatePc2LowVoltageState(void)
+   }
+ }
+ 
++/* 在互斥保护下发布转速数据。 */
+ static void RpmUpdateShared(const rpm_calc_result_t *res)
+ {
+   if ((res == NULL) || (mtxSharedDataHandle == NULL))
+@@ -1115,6 +1190,7 @@ static void RpmUpdateShared(const rpm_calc_result_t *res)
+   }
+ }
+ 
++/* 在中断上下文发布转速数据。 */
+ static void RpmUpdateSharedFromIsr(const rpm_calc_result_t *res)
+ {
+   if (res == NULL)
+@@ -1127,6 +1203,7 @@ static void RpmUpdateSharedFromIsr(const rpm_calc_result_t *res)
+   g_rpm_latest.valid = res->valid;
+ }
+ 
++/* 分发 UART 发送完成回调。 */
+ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+ {
+   if (huart->Instance == USART1)
+@@ -1143,6 +1220,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+   }
+ }
+ 
++/* 分发 UART 空闲接收回调。 */
+ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+ {
+   if ((huart->Instance == USART1) && (Size > 0U))
+@@ -1156,6 +1234,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+   }
+ }
+ 
++/* 分发 UART 错误回调。 */
+ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+ {
+   if (huart->Instance == USART1)
+@@ -1178,6 +1257,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+   * @retval None
+   */
+ /* USER CODE END Header_StartDefaultTask */
++/* 运行默认低压采样任务。 */
+ void StartDefaultTask(void *argument)
+ {
+   /* USER CODE BEGIN 5 */
+@@ -1194,6 +1274,7 @@ void StartDefaultTask(void *argument)
+   /* USER CODE END 5 */
+ }
+ 
++/* 运行无线轮询和健康上报任务。 */
+ void StartWirelessTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1213,6 +1294,7 @@ void StartWirelessTask(void *argument)
+   }
+ }
+ 
++/* 运行 USART2 Modbus 轮询任务。 */
+ void StartModbusU2Task(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1225,6 +1307,7 @@ void StartModbusU2Task(void *argument)
+   }
+ }
+ 
++/* 计算一秒结果并排队日志输出。 */
+ void StartCalcLogTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1280,6 +1363,7 @@ void StartCalcLogTask(void *argument)
+   }
+ }
+ 
++/* 运行 SD 日志写入任务。 */
+ void StartSdLogTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1293,6 +1377,7 @@ void StartSdLogTask(void *argument)
+   }
+ }
+ 
++/* 打印周期健康心跳。 */
+ void StartMonitorTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1314,6 +1399,7 @@ void StartMonitorTask(void *argument)
+   }
+ }
+ 
++/* 通过使能的 UART 输出计算结果。 */
+ void StartTxResultTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1377,6 +1463,7 @@ void StartTxResultTask(void *argument)
+   }
+ }
+ 
++/* 周期刷新硬件看门狗。 */
+ void StartWatchdogTask(void *argument)
+ {
+   uint32_t last_wake_tick = osKernelGetTickCount();
+@@ -1401,6 +1488,7 @@ void StartWatchdogTask(void *argument)
+   }
+ }
+ 
++/* 处理转速脉冲 GPIO 中断。 */
+ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+ {
+   rpm_calc_result_t rpm_res;
+diff --git a/Core/Src/modbus_master.c b/Core/Src/modbus_master.c
+index 7d7d347..c995662 100644
+--- a/Core/Src/modbus_master.c
++++ b/Core/Src/modbus_master.c
+@@ -1,5 +1,6 @@
+ #include "modbus_master.h"
+ 
++/* 计算 Modbus RTU CRC16。 */
+ uint16_t ModbusMaster_Crc16(const uint8_t *data, uint16_t len)
+ {
+   uint16_t crc = 0xFFFFU;
+@@ -24,6 +25,7 @@ uint16_t ModbusMaster_Crc16(const uint8_t *data, uint16_t len)
+   return crc;
+ }
+ 
++/* 构建 Modbus 读保持寄存器请求。 */
+ uint16_t ModbusMaster_BuildReadHolding(const modbus_read_req_t *req, uint8_t *out, uint16_t out_size)
+ {
+   uint16_t crc;
+@@ -45,6 +47,7 @@ uint16_t ModbusMaster_BuildReadHolding(const modbus_read_req_t *req, uint8_t *ou
+   return 8U;
+ }
+ 
++/* 解析 Modbus 读保持寄存器响应。 */
+ uint8_t ModbusMaster_ParseReadHoldingResp(const uint8_t *buf, uint16_t len, modbus_read_resp_t *out)
+ {
+   uint16_t crc_calc;
+diff --git a/Core/Src/rpm.c b/Core/Src/rpm.c
+index 5508b34..b863362 100644
+--- a/Core/Src/rpm.c
++++ b/Core/Src/rpm.c
+@@ -26,6 +26,7 @@ typedef struct
+ 
+ static rpm_ctx_t s_rpm_ctx;
+ 
++/* 将一次转速采样存入平均环形缓冲。 */
+ static void RPM_AvgPush(uint32_t timestamp_us, float rpm)
+ {
+   s_rpm_ctx.avg_samples[s_rpm_ctx.avg_head].timestamp_us = timestamp_us;
+@@ -37,6 +38,7 @@ static void RPM_AvgPush(uint32_t timestamp_us, float rpm)
+   }
+ }
+ 
++/* 查询有效时间窗口内的平均转速。 */
+ static float RPM_AvgQuery(uint32_t timestamp_us)
+ {
+   double sum = 0.0;
+@@ -62,6 +64,7 @@ static float RPM_AvgQuery(uint32_t timestamp_us)
+   return (float)(sum / (double)used);
+ }
+ 
++/* 初始化转速测量状态。 */
+ void RPM_Init(uint32_t pulses_per_rev,
+               uint32_t min_period_us,
+               uint32_t timeout_us,
+@@ -82,6 +85,7 @@ void RPM_Init(uint32_t pulses_per_rev,
+   s_rpm_ctx.avg_count = 0U;
+ }
+ 
++/* 根据捕获的脉冲时间戳更新转速。 */
+ rpm_calc_result_t RPM_OnPulse(uint32_t timestamp_us)
+ {
+   uint32_t delta_us;
+@@ -123,6 +127,7 @@ rpm_calc_result_t RPM_OnPulse(uint32_t timestamp_us)
+   return s_rpm_ctx.latest;
+ }
+ 
++/* 输入超时后将转速置零。 */
+ rpm_calc_result_t RPM_OnPeriodicCheck(uint32_t timestamp_us)
+ {
+   if ((s_rpm_ctx.has_last != 0U) && ((timestamp_us - s_rpm_ctx.last_ts_us) > s_rpm_ctx.timeout_us))
+diff --git a/Core/Src/stm32f4xx_hal_msp.c b/Core/Src/stm32f4xx_hal_msp.c
+index ee26e2a..50f84ac 100644
+--- a/Core/Src/stm32f4xx_hal_msp.c
++++ b/Core/Src/stm32f4xx_hal_msp.c
+@@ -356,6 +356,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
+ 
+ }
+ 
++/* 使能 RTC 外设时钟源。 */
+ void HAL_RTC_MspInit(RTC_HandleTypeDef* hrtc)
+ {
+   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+@@ -372,6 +373,7 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef* hrtc)
+   }
+ }
+ 
++/* 禁用 RTC 外设时钟。 */
+ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* hrtc)
+ {
+   if (hrtc->Instance == RTC)
+diff --git a/Core/Src/syscalls.c b/Core/Src/syscalls.c
+index e10d76f..b235499 100644
+--- a/Core/Src/syscalls.c
++++ b/Core/Src/syscalls.c
+@@ -41,15 +41,18 @@ char **environ = __env;
+ 
+ 
+ /* Functions */
++/* 提供空的监视器句柄钩子。 */
+ void initialise_monitor_handles()
+ {
+ }
+ 
++/* 返回占位进程 ID。 */
+ int _getpid(void)
+ {
+   return 1;
+ }
+ 
++/* 拒绝不支持的信号发送。 */
+ int _kill(int pid, int sig)
+ {
+   (void)pid;
+@@ -58,12 +61,14 @@ int _kill(int pid, int sig)
+   return -1;
+ }
+ 
++/* 进程退出时进入终止循环。 */
+ void _exit (int status)
+ {
+   _kill(status, -1);
+   while (1) {}    /* Make sure we hang here */
+ }
+ 
++/* 通过弱符号字符输入钩子读取字节。 */
+ __attribute__((weak)) int _read(int file, char *ptr, int len)
+ {
+   (void)file;
+@@ -77,6 +82,7 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
+   return len;
+ }
+ 
++/* 通过弱符号字符输出钩子写入字节。 */
+ __attribute__((weak)) int _write(int file, char *ptr, int len)
+ {
+   (void)file;
+@@ -89,6 +95,7 @@ __attribute__((weak)) int _write(int file, char *ptr, int len)
+   return len;
+ }
+ 
++/* 拒绝不支持的文件关闭。 */
+ int _close(int file)
+ {
+   (void)file;
+@@ -96,6 +103,7 @@ int _close(int file)
+ }
+ 
+ 
++/* 将文件报告为字符设备。 */
+ int _fstat(int file, struct stat *st)
+ {
+   (void)file;
+@@ -103,12 +111,14 @@ int _fstat(int file, struct stat *st)
+   return 0;
+ }
+ 
++/* 将文件描述符报告为 TTY 设备。 */
+ int _isatty(int file)
+ {
+   (void)file;
+   return 1;
+ }
+ 
++/* 忽略桩文件系统的定位请求。 */
+ int _lseek(int file, int ptr, int dir)
+ {
+   (void)file;
+@@ -117,6 +127,7 @@ int _lseek(int file, int ptr, int dir)
+   return 0;
+ }
+ 
++/* 拒绝不支持的文件打开。 */
+ int _open(char *path, int flags, ...)
+ {
+   (void)path;
+@@ -125,6 +136,7 @@ int _open(char *path, int flags, ...)
+   return -1;
+ }
+ 
++/* 拒绝不支持的子进程等待。 */
+ int _wait(int *status)
+ {
+   (void)status;
+@@ -132,6 +144,7 @@ int _wait(int *status)
+   return -1;
+ }
+ 
++/* 拒绝不支持的删除链接操作。 */
+ int _unlink(char *name)
+ {
+   (void)name;
+@@ -139,12 +152,14 @@ int _unlink(char *name)
+   return -1;
+ }
+ 
++/* 拒绝不支持的进程时间查询。 */
+ clock_t _times(struct tms *buf)
+ {
+   (void)buf;
+   return -1;
+ }
+ 
++/* 将路径报告为字符设备。 */
+ int _stat(const char *file, struct stat *st)
+ {
+   (void)file;
+@@ -152,6 +167,7 @@ int _stat(const char *file, struct stat *st)
+   return 0;
+ }
+ 
++/* 拒绝不支持的硬链接。 */
+ int _link(char *old, char *new)
+ {
+   (void)old;
+@@ -160,12 +176,14 @@ int _link(char *old, char *new)
+   return -1;
+ }
+ 
++/* 拒绝不支持的 fork。 */
+ int _fork(void)
+ {
+   errno = EAGAIN;
+   return -1;
+ }
+ 
++/* 拒绝不支持的 exec。 */
+ int _execve(char *name, char **argv, char **env)
+ {
+   (void)name;

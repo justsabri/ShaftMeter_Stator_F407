@@ -16,17 +16,17 @@ static void AppTxResult_FloatToRegs(float value, uint8_t *out_hi, uint8_t *out_l
 
 void AppTxResult_SetRs485Usart2(uint8_t enable)
 {
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void AppTxResult_SetRs485Usart3(uint8_t enable)
 {
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void AppTxResult_SetRs485Usart6(uint8_t enable)
 {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void AppTxResult_UpdateEnableFromConfig(const protocol_values_t *values,
