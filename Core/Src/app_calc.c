@@ -7,6 +7,7 @@
 #define OMEGA_PER_RPM           0.104719755f
 #define DEFAULT_ZERO_VOLTAGE    0.0f
 #define MM_TO_M                 0.001f
+#define MV_TO_V                 0.001f
 #define GPA_TO_PA               1000000000.0f
 #define MIN_GEOM_EPS            1.0e-9f
 #define PI_F                    3.14159265359f
@@ -164,7 +165,7 @@ static void AppCalc_UpdateCoeffs(const protocol_values_t *v)
   s_last_modulus_select = v->modulus_select;
 
   s_strain_coeff[0] = ((v->calib_factor[0] != 0.0f) && (v->gauge_sensitivity[0] != 0.0f))
-                        ? (1.0f / (v->calib_factor[0] * v->gauge_sensitivity[0])) : 0.0f;
+                        ? (1.0f / (v->calib_factor[0] * v->gauge_sensitivity[0])) : 0.0f; // 系数2：应变->剪切应变
   s_strain_coeff[1] = ((v->calib_factor[1] != 0.0f) && (v->gauge_sensitivity[1] != 0.0f))
                         ? (2.0f / (v->calib_factor[1] * v->gauge_sensitivity[1])) : 0.0f;
 
@@ -440,8 +441,8 @@ void AppCalc_Compute1s(const app_calc_ctx_t *ctx, result_1s_t *out)
     avg_rpm = snap.rpm_sum / (float)snap.rpm_count;
   }
 
-  strain_ch1 = (ch1_eff - zero_voltage_ch1) * s_strain_coeff[0];
-  strain_ch2 = (ch2_eff - zero_voltage_ch2) * s_strain_coeff[1];
+  strain_ch1 = ((ch1_eff - zero_voltage_ch1) * MV_TO_V) * s_strain_coeff[0];
+  strain_ch2 = ((ch2_eff - zero_voltage_ch2) * MV_TO_V) * s_strain_coeff[1];
   micro_strain_ch1 = strain_ch1 * MICRO_STRAIN_SCALE;
   micro_strain_ch2 = strain_ch2 * MICRO_STRAIN_SCALE;
   torque_knm_calc = (strain_ch1 * s_torque_coeff) / 1000.0f;

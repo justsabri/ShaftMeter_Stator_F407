@@ -19,10 +19,10 @@ extern "C" {
  */
 #define EXT_RTC_PRESET_YEAR               26U
 #define EXT_RTC_PRESET_MONTH              7U
-#define EXT_RTC_PRESET_DATE               29U
-#define EXT_RTC_PRESET_WEEKDAY            RTC_WEEKDAY_WEDNESDAY
-#define EXT_RTC_PRESET_HOUR               11U
-#define EXT_RTC_PRESET_MINUTE             11U
+#define EXT_RTC_PRESET_DATE               31U
+#define EXT_RTC_PRESET_WEEKDAY            RTC_WEEKDAY_FRIDAY
+#define EXT_RTC_PRESET_HOUR               9U
+#define EXT_RTC_PRESET_MINUTE             30U
 #define EXT_RTC_PRESET_SECOND             0U
 
 HAL_StatusTypeDef AppExtRtcSd2506_ReadDateTime(I2C_HandleTypeDef *hi2c,
