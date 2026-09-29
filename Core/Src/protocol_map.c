@@ -12,7 +12,9 @@ const reg_meta_t g_reg_meta_table[] = {
   {0x07D8U, "pc2_low_voltage_state", REG_TYPE_SHORT, 2U, 0U, OFF(pc2_low_voltage_state)},
   {0x07D9U, "board_low_voltage_state", REG_TYPE_SHORT, 2U, 0U, OFF(board_low_voltage_state)},
   {0x07DAU, "avg_power_kW", REG_TYPE_FLOAT, 4U, 1U, OFF(avg_power_kW)},
-  {0x07DCU, "wireless_frame_no", REG_TYPE_SHORT, 2U, 0U, OFF(wireless_frame_no)},
+  {0x07DCU, "ch1_voltage", REG_TYPE_FLOAT, 4U, 3U, OFF(ch1_voltage)},
+  {0x07DEU, "ch2_voltage", REG_TYPE_FLOAT, 4U, 3U, OFF(ch2_voltage)},
+  {0x07E0U, "wireless_frame_no", REG_TYPE_SHORT, 2U, 0U, OFF(wireless_frame_no)},
   {0x09C4U, "query_time_h", REG_TYPE_FLOAT, 4U, 1U, OFF(query_time_h)},
 
   {0x09C6U, "shaft_outer_d_mm", REG_TYPE_FLOAT, 4U, 2U, OFF(shaft_outer_d_mm)},

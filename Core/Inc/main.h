@@ -61,6 +61,8 @@ typedef struct
   float thrust;
   float rpm;
   float power;
+  float ch1_voltage;
+  float ch2_voltage;
   /*
    * SD CSV status field bit layout:
    * bits 0..7   rpm_count in the 1 s calculation window

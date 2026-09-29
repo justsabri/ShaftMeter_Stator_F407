@@ -14,7 +14,7 @@
 #define MICRO_STRAIN_SCALE      1000000.0f
 #define APP_CALC_LOG_DETAIL     0U
 #define APP_CALC_LOG_COEFF_SNAPSHOT 1U
-
+#define TO_OPPOSITE             -1.0f
 typedef struct
 {
   double ch1_sum;
@@ -446,7 +446,7 @@ void AppCalc_Compute1s(const app_calc_ctx_t *ctx, result_1s_t *out)
   micro_strain_ch1 = strain_ch1 * MICRO_STRAIN_SCALE;
   micro_strain_ch2 = strain_ch2 * MICRO_STRAIN_SCALE;
   torque_knm_calc = (strain_ch1 * s_torque_coeff) / 1000.0f;
-  thrust_kn_calc = (strain_ch2 * s_thrust_coeff) / 1000.0f;
+  thrust_kn_calc = TO_OPPOSITE * (strain_ch2 * s_thrust_coeff) / 1000.0f / 1.273;
   power_kw_calc = torque_knm_calc * avg_rpm * OMEGA_PER_RPM;
 
   out->timestamp_ms = HAL_GetTick();

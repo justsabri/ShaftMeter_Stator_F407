@@ -115,7 +115,9 @@ static const modbus_write_item_t s_write_07xx_list[] = {
   {0x07D6U, 2U, OFF_PROTO(thrust_kN)},
   {0x07D8U, 1U, OFF_PROTO(pc2_low_voltage_state)},
   {0x07D9U, 1U, OFF_PROTO(board_low_voltage_state)},
-  {0x07DCU, 1U, OFF_PROTO(wireless_frame_no)},
+  {0x07DCU, 2U, OFF_PROTO(ch1_voltage)},
+  {0x07DEU, 2U, OFF_PROTO(ch2_voltage)},
+  {0x07E0U, 1U, OFF_PROTO(wireless_frame_no)},
 };
 #undef OFF_PROTO
 

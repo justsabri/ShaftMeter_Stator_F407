@@ -73,6 +73,7 @@
 #define RTC_INIT_MARKER_VALUE 0xA5A55A5AU
 #define TX_ENABLE_USART3_DEFAULT 0U
 #define TX_ENABLE_UART6_DEFAULT  0U
+#define WIRELESS_RESTART_PERIOD           60 * 1000U
 
 /* USER CODE END PD */
 
@@ -199,7 +200,9 @@ static const modbus_poll_item_t s_modbus_07xx_poll_list[] = {
   {0x07D8U, 1U},
   {0x07D9U, 1U},
   {0x07DAU, 2U},
-  {0x07DCU, 1U},
+  {0x07DCU, 2U},
+  {0x07DEU, 2U},
+  {0x07E0U, 1U},
 };
 
 /* USER CODE END PV */
@@ -866,6 +869,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
@@ -902,6 +906,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB12 */
   GPIO_InitStruct.Pin = GPIO_PIN_12;
@@ -1023,6 +1034,12 @@ static void MX_RTC_Init(void)
 
 static void OnWirelessSampleReceived(float ch1, float ch2)
 {
+  if ((mtxSharedDataHandle != NULL) && (osMutexAcquire(mtxSharedDataHandle, 5U) == osOK))
+  {
+    g_protocol_values.ch1_voltage = ch1;
+    g_protocol_values.ch2_voltage = ch2;
+    osMutexRelease(mtxSharedDataHandle);
+  }
   AppCalc_SetForceZeroInput(0U);
   AppCalc_FeedSample(ch1, ch2);
 }
@@ -1087,7 +1104,9 @@ static void OnWirelessRxInterrupted(void)
   //      (double)zero_ch2);
   // LOGI("[WIRELESS] rx interrupted, power-cycle ext supply PC3 low->high\r\n");
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
-  osDelay(3000U);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+  osDelay(WIRELESS_RESTART_PERIOD);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
   // LOGI("[WIRELESS] ext supply power-cycle complete\r\n");
 }
@@ -1305,6 +1324,8 @@ void StartCalcLogTask(void *argument)
     RpmUpdateShared(&rpm_res);
     AppCalc_FeedRpm(rpm_res.rpm);
     AppCalc_Compute1s(&g_calc_ctx, &result);
+    result.ch1_voltage = 0.0f;
+    result.ch2_voltage = 0.0f;
     AppAvgPowerCache_Push1s(result.power, mono_sec);
     mono_sec++;
 
@@ -1323,6 +1344,8 @@ void StartCalcLogTask(void *argument)
         g_protocol_values.speed_rpm = result.rpm;
         g_protocol_values.thrust_kN = result.thrust;
         g_protocol_values.avg_power_kW = avg_power;
+        result.ch1_voltage = g_protocol_values.ch1_voltage;
+        result.ch2_voltage = g_protocol_values.ch2_voltage;
         g_result_latest = result;
         osMutexRelease(mtxSharedDataHandle);
       }

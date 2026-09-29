@@ -16,7 +16,9 @@ typedef struct
   uint16_t pc2_low_voltage_state; /* 0x07D8 */
   uint16_t board_low_voltage_state; /* 0x07D9 */
   float avg_power_kW;    /* 0x07DA */
-  uint16_t wireless_frame_no; /* 0x07DC */
+  float ch1_voltage;     /* 0x07DC */
+  float ch2_voltage;     /* 0x07DE */
+  uint16_t wireless_frame_no; /* 0x07E0 */
   float query_time_h;    /* 0x09C4 */
 
   float shaft_outer_d_mm;    /* 0x09C6 */

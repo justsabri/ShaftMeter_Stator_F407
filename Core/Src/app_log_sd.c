@@ -5,7 +5,7 @@
 #include <string.h>
 
 /* The CSV "status" column is result_1s_t.status_flags; see Core/Inc/main.h. */
-#define APP_LOG_SD_HEADER "time,torque,thrust,rpm,power,status\r\n"
+#define APP_LOG_SD_HEADER "time,torque,thrust,rpm,power,ch1_voltage,ch2_voltage,status\r\n"
 #define APP_LOG_SD_RETRY_BASE_MS 30000U
 #define APP_LOG_SD_RETRY_MAX_MS  300000U
 
@@ -358,7 +358,7 @@ static FRESULT AppLogSd_WriteBuffer(app_log_sd_ctx_t *ctx, app_log_sd_buffer_t *
 
     len = snprintf(line,
                    sizeof(line),
-                   "20%02u-%02u-%02u %02u:%02u:%02u,%.6f,%.6f,%.3f,%.6f,%lu\r\n",
+                   "20%02u-%02u-%02u %02u:%02u:%02u,%.6f,%.6f,%.3f,%.6f,%.6f,%.6f,%lu\r\n",
                    buffer->entries[i].date.Year,
                    buffer->entries[i].date.Month,
                    buffer->entries[i].date.Date,
@@ -369,6 +369,8 @@ static FRESULT AppLogSd_WriteBuffer(app_log_sd_ctx_t *ctx, app_log_sd_buffer_t *
                    (double)buffer->entries[i].result.thrust,
                    (double)buffer->entries[i].result.rpm,
                    (double)buffer->entries[i].result.power,
+                   (double)buffer->entries[i].result.ch1_voltage,
+                   (double)buffer->entries[i].result.ch2_voltage,
                    (unsigned long)buffer->entries[i].result.status_flags);
     if ((len <= 0) || (len >= (int)sizeof(line)))
     {
